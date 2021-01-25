@@ -2,7 +2,8 @@
 #include <cuda_runtime.h>
 #include "matrix.h"
 #include "lsqr.h"
-#include "lsqrCUDA.h"
+#include "lsqrCUDAcuBlas.h"
+#include "lsqrCUDAcuSparse.h"
 #include "testing.h"
 #include "helper.h"
 #include "sparseData.h"

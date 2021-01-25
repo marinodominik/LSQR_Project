@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "lsqr.h"
-#include "lsqrCUDA.h"
+#include "lsqrCUDAcuBlas.h"
 #include "matrix.h"
 
 #include <cusparse.h>
