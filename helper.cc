@@ -108,3 +108,11 @@ bool check_hardware() {
 
     //TODO
 }
+
+
+inline unsigned int div_up(unsigned int numerator, unsigned int denominator) //numerator = zähler, denumerator = nenner
+{
+	unsigned int result = numerator / denominator;
+	if (numerator % denominator) ++result;
+	return result;
+}

@@ -13,3 +13,5 @@ void print_matrix_vector_dense_format(int* elements, int size);
 std::tuple<int, int , double*> read_file(const char* path);
 
 void save_file(const char* path, double* elements, int height, int widht);
+
+inline unsigned int div_up(unsigned int numerator, unsigned int denominator);

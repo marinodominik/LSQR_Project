@@ -8,9 +8,10 @@ Project Files:
         -> read_file
         -> save_file
         -> check_hardware           <<----- TODO
+        -> div_up
     -lsqr
         -> lsqr
-    -lsqrCUDA
+    -lsqrCUDAcuBlas
         -> cuBLASCheck
         -> sparseLSQRKernel
         -> normalLSQRKernel

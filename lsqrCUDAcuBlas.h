@@ -1,6 +1,7 @@
 #pragma once
 #include "matrix.h"
 #include <cublas_v2.h>
+
 CPUMatrix normalLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs);
 CPUMatrix normalLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs);
 void cuBLASCheck(cublasStatus_t status, int line);
