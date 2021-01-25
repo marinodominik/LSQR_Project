@@ -1,5 +1,10 @@
 #include "lsqrCUDAcuSparse.h"
-
+#include "lsqr.h"
+#include "matrix.h"
+#include <cusparse.h>
+#include <math.h>
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
 CPUMatrix sparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
     cusparseStatus_t status;
     cusparseHandle_t handle;
@@ -38,3 +43,11 @@ void cuSPARSECheck(cusparseStatus_t status, int line){
 		exit(EXIT_FAILURE);
 	}
 }
+
+
+/*
+    cusparseAxpby() - for vector addition
+    
+
+
+*/
