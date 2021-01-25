@@ -148,7 +148,5 @@ void copyFromSpVecToGpuVec(cusparseSpVecDescr_t src, GPUMatrix dst){
     cusparseAxpby() - for vector addition
     cusparseCsrmvEx() matrix-vector multiplication
     cublas norm
-
     A is an m×n sparse matrix that is defined in CSR storage format by the three arrays csrValA, csrRowPtrA, and csrColIndA); x and y are vectors;
-
 */
