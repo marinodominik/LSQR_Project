@@ -4,6 +4,7 @@
 struct CPUMatrix {
     int height;
     int width;
+    int elementSize;
     double *elements;
 
     int rowSize;
@@ -15,16 +16,15 @@ struct CPUMatrix {
 struct GPUMatrix {
     int height;
     int width;
-    size_t pitch_elements;
+    int elementSize;
+    size_t pitch;
     double *elements;
 
     int rowSize;
     int* csrRow;
-    size_t pitch_csrRow;
     
     int columnSize;
     int* csrCol;
-    size_t pitch_csrCol;
 };
  
 //CPU
