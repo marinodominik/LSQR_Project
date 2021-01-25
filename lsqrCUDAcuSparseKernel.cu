@@ -18,7 +18,7 @@ __global__ norm2(double *in_data, double *out_data, int size) {
     sdata[tid] = in_data[i];
     __syncthreads();
 
-    sdata[tid] = in_data[i] * in_data[i] + in_data[i + blockDim.x] * in_data[i + blockDim.x];
+    sdata[tid] = (in_data[i] * in_data[i]) + (in_data[i + blockDim.x] * in_data[i + blockDim.x]);
     __syncthreads();
 }
 
@@ -50,10 +50,9 @@ __global__ scalar_vector(double *in_data, double *out_data, double scalar, int s
 // Kernel for matrix Sparse Format
 __global__ add_subtract_elements_sparse_vector() {
 
-
 }
 
-
+//shared memory
 __global__ matrix_vector_operation() {
     std::cout <<"hi";
 }
