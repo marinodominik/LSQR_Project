@@ -20,7 +20,7 @@ CPUMatrix sparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	CPUMatrix fillingToX = matrix_alloc_cpu(b.height,b.width);
     for(int i=0;i<b.height;i++){
 		fillingToX.elements[i]=0;
-	}
+	} 
 	cuSPARSECheck(status,__LINE__); 
 	matrix_upload(fillingToX,x);  
 
@@ -47,7 +47,7 @@ void cuSPARSECheck(cusparseStatus_t status, int line){
 
 /*
     cusparseAxpby() - for vector addition
-    
+
 
 
 */
