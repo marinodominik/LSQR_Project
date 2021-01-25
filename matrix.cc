@@ -55,13 +55,55 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	Md.height = height;
 	Md.width = width;
 	int size = width * height * sizeof(double);
-	cudaError_t err = cudaMallocPitch(&Md.elements, &Md.pitch,width*sizeof(float),height);
+	cudaError_t err = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
+	return Md;
+}
+
+GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int sizeElements, int rowSize, int ColumnSize) {
+	GPUMatrix Md;
+	Md.height = height;
+	Md.width = width;
+	Md.elements = new double[elementSize];
+	int size = width * height * sizeof(double);
+	cudaError_t err_elements = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
+
+	Md.rowSize = rowSize;
+	Md.csrRow = new int[rowSize];
+	cudaError_t err_csrRow = cudaMalloc(&Md.csrRow, rowSize * sizeof(int));
+
+	Md.columnSize = columnSize;
+	Md.csrCol = new int[columnSize];
+	cudaError_t = err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
+
+	return Md;
+}
+
+
+GPUMatrix vector_alloc_sparse_cpu(int height, int width, int sizeElements, int colSize) {
+	GPUMatrix Md;
+	Md.height = height;
+	Md.width = width;
+	Md.elements = new double[elementSize];
+	int size = width * height * sizeof(double);
+	cudaError_t err_elements = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
+
+	Md.columnSize = columnSize;
+	Md.csrCol = new int[columnSize];
+	cudaError_t = err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
+
 	return Md;
 }
 
 
 void matrix_free_gpu(GPUMatrix &m) {
     cudaFree(m.elements);
+}
+
+
+void matrix_free_sparse_cpu(GPUMatrix &m) {
+	cudaFree(m.elements);
+	cudaFree(m.csrCol);
+	cudaFree(m.csrRow);
 }
 
 
@@ -77,3 +119,26 @@ void matrix_download(const GPUMatrix &src, CPUMatrix &dst)
 	cudaMemcpy(dst.elements, src.elements, size, cudaMemcpyDeviceToHost);
 }
 
+
+void matrix_upload_cuSparse(const CPUMatrix & src, CPUMatrix & dst) {
+	int size_elements = src.height * src.width * sizeof(double);
+	cudaMemcpy(dst.elements, src.elements, size_elements, cudaMemcpyHostToDevice);
+
+	int size_csrCol = src.columnSize * sizeof(int);
+	cudaMemcpy(dst.csrCol, src.csrCol, size_csrCol, cudaMemcpyHostToDevice);
+
+	int size_csrRow = src.rowSize * sizeof(int);
+	cudaMemcpy(dst.csrRow, src.csrRow, size_csrRow, cudaMemcpyHostToDevice);
+}
+
+
+void matrix_download_cuSparse(const GPUMatrix &src, CPUMatrix & dst) {
+	int size_elements = src.height * src.width * sizeof(double);
+	cudaMemcpy(dst.elements, src.elements, size_elements, cudaMemcpyHostToDevice);
+
+	int size_csrCol = src.columnSize * sizeof(int);
+	cudaMemcpy(dst.csrCol, src.csrCol, size_csrCol, cudaMemcpyHostToDevice);
+
+	int size_csrRow = src.rowSize * sizeof(int);
+	cudaMemcpy(dst.csrRow, src.csrRow, size_csrRow, cudaMemcpyHostToDevice);
+} 
