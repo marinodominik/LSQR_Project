@@ -17,7 +17,8 @@ CPUMatrix sparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
     cusparseCreateCsr(&A,A.height,A.rows,A.elementSize,A.csrRow,A.csrCol,A.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
     cusparseCreateSpVec(&spVectorb,b.height,b.elementSize,b.csrCol,b.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
     
-    double *zeros = new double[b.elementSize]; //to init helper vectors
+    double *zeros = new double[b.height]; //to init helper vectors
+    
     
     cusparseCreateDnVec(&u,b.height,b.elementSize,b.csrCol,zeros,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
     cusparseCreateDnVec(&v,b.height,b.elementSize,b.csrCol,zeros,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
