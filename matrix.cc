@@ -15,6 +15,7 @@ CPUMatrix matrix_alloc_sparse_cpu(int height, int width, int elementSize, int ro
 	CPUMatrix m;
 	m.height = height;
 	m.width = width;
+	m.elementSize = elementSize;
 	m.elements = new double[elementSize];
 
 	m.rowSize = rowSize;
@@ -29,6 +30,7 @@ CPUMatrix vector_alloc_sparse_cpu(int height, int width, int sizeElements, int c
 	CPUMatrix m;
 	m.height = height;
 	m.width = width;
+	m.elementSize = elementSize;
 	m.elements = new double[sizeElements];
 
 	m.columnSize = colSize;
@@ -59,10 +61,11 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	return Md;
 }
 
-GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int sizeElements, int rowSize, int ColumnSize) {
+GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int elementSize, int rowSize, int ColumnSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
+	Md.elementSize = elementSize;
 	Md.elements = new double[elementSize];
 	int size = width * height * sizeof(double);
 	cudaError_t err_elements = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
@@ -79,10 +82,11 @@ GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int sizeElements, int r
 }
 
 
-GPUMatrix vector_alloc_sparse_cpu(int height, int width, int sizeElements, int colSize) {
+GPUMatrix vector_alloc_sparse_cpu(int height, int width, int elementSize, int colSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
+	Md.elementSize = elementSize;
 	Md.elements = new double[elementSize];
 	int size = width * height * sizeof(double);
 	cudaError_t err_elements = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
