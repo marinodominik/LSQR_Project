@@ -164,15 +164,6 @@ CPUMatrix normalLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	return result;
 }
 
- void sparseLSQR(){/*
-	cusparseHandle_t handle; //context
-	cusparseStatus_t cusparseCreate(cusparseHandle_t *handle);
-
-	LSQRSparseKernel <<<dimGrid, dimBlock>>>( dst ,src, kernel);
-
-	cusparseStatus_t cusparseDestroy(cusparseHandle_t handle);
-*/
-}
 __global__ void normalLSQRKernel(){}
 
 
