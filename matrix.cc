@@ -124,7 +124,7 @@ void matrix_download(const GPUMatrix &src, CPUMatrix &dst)
 }
 
 
-void matrix_upload_cuSparse(const CPUMatrix & src, CPUMatrix & dst) {
+void matrix_upload_cuSparse(const CPUMatrix & src, GPUMatrix & dst) {
 	int size_elements = src.height * src.width * sizeof(double);
 	cudaMemcpy(dst.elements, src.elements, size_elements, cudaMemcpyHostToDevice);
 
