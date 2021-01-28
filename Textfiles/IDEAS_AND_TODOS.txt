@@ -24,3 +24,7 @@ TODOS:
         - cuBlas without csr
         - cuBlas with csr
         - everything with kernels and shared memory (or something else) ?? 
+    ->cuSPARSE:
+        create A_T somehow
+        connect with kernels
+        solve issues with desc_t
