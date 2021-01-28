@@ -109,21 +109,40 @@ __global__ void matrix_vector_operation() {
 }
 
 
-GPUMatrix lsqr_algrithm() {
+GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+    GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    u.elements[0] = 3; 
+    printf("test\n");
+    return u;
 
 }
 
 
 
 CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
-    CPUMatrix result = matrix_alloc_cpu(b.height, b.width);
+    CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
+    GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
 
+    //GPUMatrix gpuA = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    GPUMatrix A_gpu = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
+    
     /* upload Matrix, vector */
-    
-    
-    for (int i = 0; i < b.width * b.height; i ++) printf("%d, ", result.elements[i]);
+    //matrix_upload_cuSparse(A, gpuA);
+    matrix_upload(b, A_gpu);
+    matrix_upload(b, b_gpu);
+
+    resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
+
+    printVector(b.height * b.width, resultGPU, "u");
 
     /* Download result */
+    matrix_download(resultGPU, resultCPU);
 
-    return result;
+    /* free GPU memory */
+    cudaFree(resultGPU.elements);
+    cudaFree(A_gpu.elements);
+    cudaFree(b_gpu.elements);
+
+    return resultCPU;
 }
