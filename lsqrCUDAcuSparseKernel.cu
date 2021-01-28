@@ -58,7 +58,7 @@ GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
 __global__ void norm2(const double *in_data, const int size) {
     extern __shared__ double sdata[];
     unsigned int tid = threadIdx.x;
-    unsigned int i = threadIdx.x + blockIdx.x * 2  blockDim.x;
+    unsigned int i = threadIdx.x + blockIdx.x * 2 + blockDim.x;
     sdata[tid] = in_data[i];
     __syncthreads();
 
@@ -68,7 +68,7 @@ __global__ void norm2(const double *in_data, const int size) {
 
 
 
-__global__ void add_subtract_vector(const double *a, const double *b, const double *c, const bool operation, const int size) {
+__global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     //check if index out of range of vector
@@ -85,7 +85,7 @@ __global__ void add_subtract_vector(const double *a, const double *b, const doub
 
 
 
-__global__ void scalar_vector(const double *in_data, const double *out_data, const double scalar, const int size) {
+__global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (i < size) {
@@ -109,14 +109,21 @@ __global__ void matrix_vector_operation() {
 }
 
 
+GPUMatrix lsqr_algrithm() {
 
-CPUMatrix sparseLSQR_with_kernels(const GPUMatrix &A, const GPUMatrix &b, double lambda, double ebs) {
+}
+
+
+
+CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
     CPUMatrix result = matrix_alloc_cpu(b.height, b.width);
 
     /* upload Matrix, vector */
     
     
     for (int i = 0; i < b.width * b.height; i ++) printf("%d, ", result.elements[i]);
+
+    /* Download result */
 
     return result;
 }
