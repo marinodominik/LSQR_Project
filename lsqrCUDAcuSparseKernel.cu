@@ -11,10 +11,10 @@
 
 
 double getNorm2(const GPUMatrix denseVector) {
-    
+
 }
 
-GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB) {
+GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
 
 }
 
