@@ -47,6 +47,6 @@ void matrix_free_sparse_gpu(GPUMatrix &m);
 void matrix_upload(const CPUMatrix &src, GPUMatrix &dst);
 void matrix_download(const GPUMatrix &src, CPUMatrix &dst);
 
-void matrix_upload_cuSparse(const CPUMatrix & src, CPUMatrix & dst);
+void matrix_upload_cuSparse(const CPUMatrix & src, GPUMatrix & dst);
 void matrix_download_cuSparse(const GPUMatrix &src, CPUMatrix & dst);
 

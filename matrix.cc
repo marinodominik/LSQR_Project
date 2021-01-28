@@ -26,12 +26,12 @@ CPUMatrix matrix_alloc_sparse_cpu(int height, int width, int elementSize, int ro
 	return m;
 }
 
-CPUMatrix vector_alloc_sparse_cpu(int height, int width, int sizeElements, int colSize) {
+CPUMatrix vector_alloc_sparse_cpu(int height, int width, int elementSize, int colSize) {
 	CPUMatrix m;
 	m.height = height;
 	m.width = width;
 	m.elementSize = elementSize;
-	m.elements = new double[sizeElements];
+	m.elements = new double[elementSize];
 
 	m.columnSize = colSize;
 	m.csrCol = new int[colSize];
@@ -61,7 +61,7 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	return Md;
 }
 
-GPUMatrix matrix_alloc_sparse_gpu(int height, int width, int elementSize, int rowSize, int ColumnSize) {
+GPUMatrix matrix_alloc_sparse_gpu(int height, int width, int elementSize, int rowSize, int columnSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
@@ -76,13 +76,13 @@ GPUMatrix matrix_alloc_sparse_gpu(int height, int width, int elementSize, int ro
 
 	Md.columnSize = columnSize;
 	Md.csrCol = new int[columnSize];
-	cudaError_t = err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
+	cudaError_t err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
 
 	return Md;
 }
 
 
-GPUMatrix vector_alloc_sparse_gpu(int height, int width, int elementSize, int colSize) {
+GPUMatrix vector_alloc_sparse_gpu(int height, int width, int elementSize, int columnSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
@@ -93,7 +93,7 @@ GPUMatrix vector_alloc_sparse_gpu(int height, int width, int elementSize, int co
 
 	Md.columnSize = columnSize;
 	Md.csrCol = new int[columnSize];
-	cudaError_t = err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
+	cudaError_t err_csrCol = cudaMalloc(&Md.csrCol, columnSize * sizeof(int));
 
 	return Md;
 }
@@ -124,7 +124,7 @@ void matrix_download(const GPUMatrix &src, CPUMatrix &dst)
 }
 
 
-void matrix_upload_cuSparse(const CPUMatrix & src, CPUMatrix & dst) {
+void matrix_upload_cuSparse(const CPUMatrix & src, GPUMatrix & dst) {
 	int size_elements = src.height * src.width * sizeof(double);
 	cudaMemcpy(dst.elements, src.elements, size_elements, cudaMemcpyHostToDevice);
 
