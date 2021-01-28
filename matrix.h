@@ -42,7 +42,7 @@ GPUMatrix matrix_alloc_sparse_gpu(int height, int width, int sizeElements, int r
 GPUMatrix vector_alloc_sparse_gpu(int height, int width, int sizeElements, int colSize);
 
 void matrix_free_gpu(GPUMatrix &m);
-void matrix_free_sparse_cpu(GPUMatrix &m);
+void matrix_free_sparse_gpu(GPUMatrix &m);
 
 void matrix_upload(const CPUMatrix &src, GPUMatrix &dst);
 void matrix_download(const GPUMatrix &src, CPUMatrix &dst);
