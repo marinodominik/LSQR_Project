@@ -61,7 +61,7 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	return Md;
 }
 
-GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int elementSize, int rowSize, int ColumnSize) {
+GPUMatrix matrix_alloc_sparse_gpu(int height, int width, int elementSize, int rowSize, int ColumnSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
@@ -82,7 +82,7 @@ GPUMatrix matrix_alloc_sparse_cpu(int height, int width, int elementSize, int ro
 }
 
 
-GPUMatrix vector_alloc_sparse_cpu(int height, int width, int elementSize, int colSize) {
+GPUMatrix vector_alloc_sparse_gpu(int height, int width, int elementSize, int colSize) {
 	GPUMatrix Md;
 	Md.height = height;
 	Md.width = width;
@@ -104,7 +104,7 @@ void matrix_free_gpu(GPUMatrix &m) {
 }
 
 
-void matrix_free_sparse_cpu(GPUMatrix &m) {
+void matrix_free_sparse_gpu(GPUMatrix &m) {
 	cudaFree(m.elements);
 	cudaFree(m.csrCol);
 	cudaFree(m.csrRow);
