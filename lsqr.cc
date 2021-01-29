@@ -3,7 +3,7 @@
 #include "matrix.h"
 #include "lsqr.h"
 #include "lsqrCUDAcuBlas.h"
-#include "lsqrCUDAcuSparse.h"
+/*#include "lsqrCUDAcuSparse.h"*/
 #include "lsqrCUDAcuSparseKernel.h"
 #include "testing.h"
 #include "helper.h"
@@ -36,8 +36,8 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
     CPUMatrix resultKernel = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
-    resultKernel = sparseLSQR_with_kernels(cpuVector_b, cpuVector_b, 0, ebs);
-
+    resultKernel = sparseLSQR_with_kernels(cpuVector_b, cpuVector_b, 0.0, ebs);
+    
     // Testing
     //compare_lsqr(cpuMatrixA, cpuVectorb, cpuVectorb, lambda, ebs);
 
