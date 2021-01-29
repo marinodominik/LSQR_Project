@@ -31,11 +31,13 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
-
+    
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
     CPUMatrix resultKernel = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
+    
+    print_matrix_vector_dense_format(cpuVector_b.elements, cpuVector_b.width * cpuVector_b.height);
     resultKernel = sparseLSQR_with_kernels(cpuVector_b, cpuVector_b, 0.0, ebs);
     
     // Testing

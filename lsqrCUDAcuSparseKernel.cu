@@ -6,7 +6,7 @@
 
 #define BLOCK_SIZE 32            //max threads in a block
 
-
+__global__ void sqaure_vector(const double *vector, double *result, const int size);
 __global__ void norm2(const double *in_data, const int size);
 __global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
 __global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
@@ -15,8 +15,7 @@ __global__ void matrix_vector_operation();
 
 
 
-inline unsigned int div_up(unsigned int numerator, unsigned int denominator) //numerator = zähler, denumerator = nenner
-{
+inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { //numerator = zähler, denumerator = nenner
 	unsigned int result = numerator / denominator;
 	if (numerator % denominator) ++result;
 	return result;
@@ -25,7 +24,18 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) //n
 
 
 double getNorm2(const GPUMatrix denseVector) {
-    return 0.0;
+    GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
+    double result = 0;
+
+    int grids = div_up(denseVector.height, BLOCK_SIZE);
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
+
+    sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, double result);
+    printVector(tmp.height * tmp.width, tmp, "norm");
+
+    return sqrt(result);
 }
 
 
@@ -34,8 +44,8 @@ GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB
     GPUMatrix result = matrix_alloc_gpu(denseA.height, denseA.width);
 
     int grids = div_up(denseA.height, BLOCK_SIZE);
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE); //1024 threads
-    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseB.height);
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseA.height);
 
     return result;
 }
@@ -45,7 +55,7 @@ GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB
 GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
-    int grids = div_up(vector.width, BLOCK_SIZE);
+    int grids = div_up(vector.height, BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     scalar_vector<<<grids, dimBlock>>>(vector.elements, result.elements, scalar, vector.height * vector.width);
     
@@ -55,15 +65,38 @@ GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
 
 
 // <<<<<<<<<<< Vector ist in dense format >>>>>>>>>>>>>>>>>>>
-__global__ void norm2(const double *in_data, const int size) {
+__global__ void sqaure_vector(const double *vector, double *result, const int size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(i >= size) { 
+        return;
+    } else {
+        result[i] = vector[i] * vector[i];
+    }
+
+    __syncthreads();
+}
+
+__global__ void norm2(const double *in_data, double result) {
     extern __shared__ double sdata[];
+
     unsigned int tid = threadIdx.x;
     unsigned int i = threadIdx.x + blockIdx.x * 2 + blockDim.x;
-    sdata[tid] = in_data[i];
+
+    sdata[tid] = in_data[i];        //load global data in sh_memory
     __syncthreads();
 
-    sdata[tid] = (in_data[i] * in_data[i]) + (in_data[i + blockDim.x] * in_data[i + blockDim.x]);
-    __syncthreads();
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>=1) {
+        if(tid < s) {
+            sdata[tid] += sdata[tid + s];
+        }
+        __syncthreads();
+    }
+    
+    //Back to global memory
+    if (tid == 0) {
+        result = sdata[0];
+    }
 }
 
 
@@ -102,9 +135,10 @@ __global__ void matrix_vector_operation(const GPUMatrix &A_sparse, const GPUMatr
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-
-    return u;
-
+    double norm = getNorm2(b);
+    printf("norm: %lf", norm);
+    GPUMatrix result = matrix_alloc_gpu(b.height, b.width);
+    return result;
 }
 
 
@@ -124,7 +158,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
 
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
 
-    printVector(b.height * b.width, resultGPU, "u");
+    printVector(b.height * b.width, resultGPU, "add vector");
 
     /* Download result */
     matrix_download(resultGPU, resultCPU);
