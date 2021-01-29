@@ -10,8 +10,7 @@ __global__ void sqaure_vector(const double *vector, double *result, const int si
 __global__ void norm2(const double *in_data, double *result);
 __global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
 __global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
-__global__ void add_subtract_elements_sparse_vector();
-__global__ void matrix_vector_operation();
+__global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
 
 
 
@@ -63,6 +62,10 @@ GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
     scalar_vector<<<grids, dimBlock>>>(vector.elements, result.elements, scalar, vector.height * vector.width);
     
     return result;
+}
+
+GPUMatrix get_matrix_vector_multiplication(const GPUMatrix A_sparse, const GPUMatrix b_dense) {
+
 }
 
 
@@ -138,7 +141,7 @@ __global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GP
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    
+    GPUMatrix result = get_matrix_vector_multiplication(A, b); 
 }
 
 
