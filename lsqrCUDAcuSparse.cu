@@ -34,7 +34,7 @@ CPUMatrix sparseLSQR_aux(const cusparseSpMatDescr_t &A, const cusparseSpVecDescr
     cusparseStatus_t status;
     cusparseHandle_t handle;
     status = cusparseCreate(&handle);
-    cuSPARSECheck(status,__line)
+    cuSPARSECheck(status,__line);
 	prev_err = 100000000; 
 	//init stage
 	//beta = norm(b)

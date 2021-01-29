@@ -21,6 +21,7 @@ cuda_add_executable(lsqr
 	lsqr.cc
 	lsqrCUDAcuBlas.cu
 	lsqrCUDAcuSparse.cu
+	lsqrCUDAcuSparseKernel.cu
 	testing.cc
 	helper.cc
 	matrix.cc
