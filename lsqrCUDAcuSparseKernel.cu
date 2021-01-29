@@ -7,7 +7,7 @@
 #define BLOCK_SIZE 32            //max threads in a block
 
 __global__ void sqaure_vector(const double *vector, double *result, const int size);
-__global__ void norm2(const double *in_data, const int size);
+__global__ void norm2(const double *in_data, double *result);
 __global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
 __global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
 __global__ void add_subtract_elements_sparse_vector();
@@ -25,17 +25,20 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { /
 
 double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
-    double result = 0;
+    double *result = new double[0];
+    cudaMalloc(&result, 1 * sizeof(double));
 
     int grids = div_up(denseVector.height, BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
-
+    
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, double result);
-    printVector(tmp.height * tmp.width, tmp, "norm");
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
+    
+    double r;
+    cudaMemcpy(&r, result, 1 * sizeof(double), cudaMemcpyDeviceToHost);
 
-    return sqrt(result);
+    return sqrt(r);
 }
 
 
@@ -77,25 +80,25 @@ __global__ void sqaure_vector(const double *vector, double *result, const int si
     __syncthreads();
 }
 
-__global__ void norm2(const double *in_data, double result) {
+__global__ void norm2(const double *in_data, double *result) {
     extern __shared__ double sdata[];
 
     unsigned int tid = threadIdx.x;
-    unsigned int i = threadIdx.x + blockIdx.x * 2 + blockDim.x;
+    unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
 
     sdata[tid] = in_data[i];        //load global data in sh_memory
     __syncthreads();
 
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>=1) {
+    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
         if(tid < s) {
             sdata[tid] += sdata[tid + s];
         }
         __syncthreads();
     }
     
-    //Back to global memory
+    //thread 0 writes in result back to global memory
     if (tid == 0) {
-        result = sdata[0];
+        result[0] = sdata[0];
     }
 }
 
@@ -136,7 +139,6 @@ __global__ void matrix_vector_operation(const GPUMatrix &A_sparse, const GPUMatr
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
     double norm = getNorm2(b);
-    printf("norm: %lf", norm);
     GPUMatrix result = matrix_alloc_gpu(b.height, b.width);
     return result;
 }
@@ -158,7 +160,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
 
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
 
-    printVector(b.height * b.width, resultGPU, "add vector");
+    //printVector(b.height * b.width, resultGPU, "add vector");
 
     /* Download result */
     matrix_download(resultGPU, resultCPU);
