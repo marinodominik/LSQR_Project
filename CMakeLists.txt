@@ -8,8 +8,8 @@ endif()
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
-	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} ")
+	set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ")
 endif()
 
 find_package(CUDA REQUIRED)
@@ -20,7 +20,7 @@ cuda_add_executable(lsqr
 	main.cc
 	lsqr.cc
 	lsqrCUDAcuBlas.cu
-	lsqrCUDAcuSparse.cu
+	lsqrCUDAcuSparse.cu  
 	testing.cc
 	helper.cc
 	matrix.cc
@@ -39,8 +39,10 @@ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_30,code=sm_30")
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_35,code=sm_35")
 
 # # Maxwell
- set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_50,code=sm_50")
+ set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}  -gencode arch=compute_50,code=sm_50")
  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_52,code=sm_52")
+
+target_link_libraries( lsqr ${CUDA_cusparse_LIBRARY} )
 
 # Activate (and require) C++11 support
 set_property(TARGET lsqr PROPERTY CXX_STANDARD 11)
