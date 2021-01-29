@@ -35,23 +35,11 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    
-=======
->>>>>>> 3e974da87ea89eed9325cafd0d570957000226a1
+
     std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
     CPUMatrix sparseMatrixA = read_matrix_in_csr(pathMatrixA);
     CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
     printTruncatedVector(cuSPARSEResult);
-<<<<<<< HEAD
-=======
-    
->>>>>>> 7a1a13c0c45aa6abb7468fec5aae88197943e457
-=======
->>>>>>> 4657c19d125bb520bff5b7f57d425306cc30c178
->>>>>>> 3e974da87ea89eed9325cafd0d570957000226a1
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
