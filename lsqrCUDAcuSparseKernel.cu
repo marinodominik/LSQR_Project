@@ -33,8 +33,8 @@ double getNorm2(const GPUMatrix denseVector) {
 GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
     GPUMatrix result = matrix_alloc_gpu(denseA.height, denseA.width);
 
-    int grids = div_up(denseA.width, BLOCK_SIZE);
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    int grids = div_up(denseA.height, BLOCK_SIZE);
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE); //1024 threads
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseB.height);
 
     return result;
@@ -95,25 +95,14 @@ __global__ void scalar_vector(const double *in_data, double *out_data, const dou
 }
 
 
-
-// Kernel for matrix Sparse Format
-__global__ void add_subtract_elements_sparse_vector() {
-
-}
-
-
-
 //shared memory
-__global__ void matrix_vector_operation() {
+__global__ void matrix_vector_operation(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result) {
 
 }
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
-    
-    u.elements[0] = 3; 
-    printf("test\n");
+
     return u;
 
 }
