@@ -3,7 +3,7 @@
 #include "matrix.h"
 #include "lsqr.h"
 #include "lsqrCUDAcuBlas.h"
-/*#include "lsqrCUDAcuSparse.h"*/
+#include "lsqrCUDAcuSparse.h"
 #include "lsqrCUDAcuSparseKernel.h"
 #include "testing.h"
 #include "helper.h"
