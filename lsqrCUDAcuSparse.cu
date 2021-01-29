@@ -23,6 +23,7 @@ CPUMatrix sparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &VE
     cusparseStatus_t status;
     cusparseHandle_t handle;
     status = cusparseCreate(&handle);
+<<<<<<< HEAD
     cuSPARSECheck(status,__LINE__);
     prev_err = 100000000; 
     cusparseSpMatDescr_t spMatrixA;
@@ -35,6 +36,10 @@ CPUMatrix sparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &VE
     cusparseCreateDnVec(&x,VECb.height,VECx.elements,CUDA_R_64F);
     cusparseCreateDnVec(&tempDense,VECb.height,tempVector.elements,CUDA_R_64F);
 
+=======
+    cuSPARSECheck(status,__line);
+	prev_err = 100000000; 
+>>>>>>> 324f7bead6779e05a3acfaa8745f3f60cbbcbb93
 	//init stage
     //beta = norm(b)
     beta = normalVectorNorm(b,tempVector);
