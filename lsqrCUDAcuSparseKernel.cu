@@ -111,6 +111,7 @@ __global__ void matrix_vector_operation() {
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
     GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    
     u.elements[0] = 3; 
     printf("test\n");
     return u;
