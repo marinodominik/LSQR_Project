@@ -16,16 +16,16 @@ TODOS:
     -> erstelle 100x100 matrix und vector
     -> write kernels for:
         - matrix, vector operation
-        - norm       (kernel zum quadrieren, und kernel für addieren)
+        - norm
         - add/subtract two vectors 
         - scalar with vector 
+        - lsqr comapre - return the required vector
     -> calculate times for  
-        - cpu calculation (Testing)             --> Check
-        - cuBlas without csr                    --> Check
-        - cuSparse without paralellisierung
-        - cuSparse with Kernel functions
+        - cpu calculation
+        - cuBlas without csr
+        - cuBlas with csr
         - everything with kernels and shared memory (or something else) ?? 
     ->cuSPARSE:
         create A_T somehow
-        connect with kernels
+        connect with kernels check
         solve issues with desc_t

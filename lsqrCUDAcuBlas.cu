@@ -9,14 +9,12 @@
 #include <cublas_v2.h> //cuda basic linear algebra subroutine library
 #define BLOCK_SIZE 32
 
-__global__ void sparseLSQRKernel();//decleration 
-__global__ void normalLSQRKernel();//decleration
 /*
 	A normal LSQR implemtation - GPU Matrix A, Vector b (as 1*n matrix)
 	u,v,w,x are matrix that is allocated before hand to use for cuBLAS computations 
 	vector x needs to be initialzed to 0.
 */
-CPUMatrix normalLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
+CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	cublasHandle_t handle;
 	cublasStatus_t status;
 	status = cublasCreate(&handle);
@@ -50,10 +48,10 @@ CPUMatrix normalLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	cublasDestroy(handle);
 	cuBLASCheck(status,__LINE__); 
 
-	return normalLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs);
+	return cublasLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs);
 }
 
-CPUMatrix normalLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs){
+CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs){
 	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
 	cublasHandle_t handle;
 	cublasStatus_t status;
@@ -154,28 +152,18 @@ CPUMatrix normalLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cuBLASCheck(status,__LINE__);
 		improvment = prev_err-curr_err;
 		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
-		if(improvment<ebs) counter++; else counter = 0;
-		if(counter>1000) break;
+		if(i==A.height) break;
 		prev_err = curr_err;
 	}
+	printf("LSQR using cuBLAS finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
 	CPUMatrix result = matrix_alloc_cpu(x.height,x.width);
 	matrix_download(x,result);
 	cublasDestroy(handle);
 	return result;
 }
 
-__global__ void normalLSQRKernel(){}
 
 
-__global__ void sparseLSQRKernel(){/*
-	int threadx = threadIdx.x;
-	int thready = threadIdx.y;
-	int blockx = blockIdx.x;
-	int blocky = blockIdx.y;
-	int tx = blockx*BLOCK_SIZE +threadx;
-	int ty = blocky*BLOCK_SIZE +thready;*/
-    
-}
 void cuBLASCheck(cublasStatus_t status, int line){
 	if(status != CUBLAS_STATUS_SUCCESS){
 		printf("error code %d, line(%d)\n", status, line);

@@ -3,7 +3,7 @@
 #include "matrix.h"
 #include "lsqrCUDAcuBlas.h"
 
-double getNorm2(const GPUMatrix &denseVector);
+double getNorm2( GPUMatrix denseVector);
 
 GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation);
 GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar);

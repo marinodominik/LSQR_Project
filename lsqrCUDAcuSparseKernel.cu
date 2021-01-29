@@ -103,7 +103,7 @@ __global__ void matrix_vector_operation(const GPUMatrix &A_sparse, const GPUMatr
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
 
-    return u;
+    //return u;
 
 }
 
