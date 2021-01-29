@@ -27,7 +27,6 @@ cuda_add_executable(lsqr
 	matrix.cc
 	Testing/lsqrBase.cxx
 	Testing/lsqrDense.cxx
-	sparseData.cc
 )
 
 
