@@ -1,4 +1,4 @@
-n = 9;   %n has to be a number that if we sqrt(n) the result create an integer
+n = 9;   %n has to be quadratic (i.e, 4, 9, 16, 25, 36, ...), so sqrt(n) has to be an intiger
 k = 100; %percentage of elements that are filled
 
 out = zeros(n);
