@@ -135,18 +135,20 @@ __global__ void scalar_vector(const double *in_data, double *out_data, const dou
 
 //shared memory
 __global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result) {
-
+    //cuSparseCsrSpMV
 }
 
 
 GPUMatrix get_matrix_vector_multiplication(const GPUMatrix A_sparse, const GPUMatrix b_dense) {
-
+    return b_dense;
 }
 
 
 
+
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix result = get_matrix_vector_multiplication(A, b); 
+    GPUMatrix result = get_matrix_vector_multiplication(A, b);
+    return result; 
 }
 
 
@@ -155,11 +157,11 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
     GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
 
-    GPUMatrix gpuA = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    GPUMatrix A_gpu = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
     GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
     
     /* upload Matrix, vector */
-    matrix_upload_cuSparse(A, gpuA);
+    matrix_upload_cuSparse(A, A_gpu);
     matrix_upload(b, b_gpu);
 
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);

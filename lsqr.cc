@@ -19,7 +19,6 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
     std::tuple<int, int , double*> A = read_file(pathMatrixA);
     std::tuple<int, int , double*> b = read_file(pathVectorb);
 
-
     /* <<<< ---------------- READ DATA IN CPUMATRIX ----------------------- >>>> */
     CPUMatrix cpuMatrixA = matrix_alloc_cpu(std::get<0>(A), std::get<1>(A));
     cpuMatrixA.elements = std::get<2>(A);
@@ -31,15 +30,13 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH cuBLAS-LIBARY ----------------------- >>>> */
     std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
     CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b,ebs);
-    //printTruncatedVector(cuBLASResult);
+    printTruncatedVector(cuBLASResult);
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
-
     std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
-    CPUMatrix sparseMatrixA = read_matrix_in_csr(pathMatrixA);
     CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
-    //printTruncatedVector(cuSPARSEResult);
+    printTruncatedVector(cuSPARSEResult);
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
@@ -55,7 +52,7 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
 
     /* <<<< ---------------- FREE CPUMATRIX MEMORY ----------------------- >>>>  */
-    //free(std::get<2>(A));
+    free(std::get<2>(A));
     free(std::get<2>(b));
 
 }
