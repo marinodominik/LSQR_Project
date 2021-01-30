@@ -4,7 +4,8 @@ k = 0; %percentage
 out = zeros(n);
 out(randperm(n^2, ceil(n^2*k/100))) = 1;
 
-vec = rand(1, n);
+vec = randi(100, sqrt(n));
+vec = reshape(vec.', 1, [])
 
 for a = 1:n
   for b = 1:n
