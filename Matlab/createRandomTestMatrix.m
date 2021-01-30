@@ -26,8 +26,8 @@ matrix = horzcat(shape_matrix, flatten);
 shape_vector = [n, 1]
 vector = horzcat(shape_vector, vec);
 
-filename_matrix = strcat("matrix", num2str(n), "x", num2str(n), ".txt");      %change filename
-filename_vector = strcat("vector", num2str(n), "x1.txt");
+filename_matrix = strcat("matrix", num2str(n), "x", num2str(n), "p", num2str(20), ".txt");      %change filename
+filename_vector = strcat("vector", num2str(n),"x1p", num2str(20),".txt");
 
 dlmwrite(filename_matrix, matrix,  'delimiter', '\n');
 dlmwrite(filename_vector, vector,  'delimiter', '\n');
