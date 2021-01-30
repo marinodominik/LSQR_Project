@@ -1,5 +1,5 @@
 n = 9;
-k = 100; %percentage
+k = 100; %percentage of elements that are filled
 
 out = zeros(n);
 out(randperm(n^2, ceil(n^2*k/100))) = 1;
