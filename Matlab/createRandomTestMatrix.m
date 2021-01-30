@@ -1,10 +1,10 @@
-n = 9;
+n = 9;   %n has to be a number that if we sqrt(n) the result create an integer
 k = 100; %percentage of elements that are filled
 
 out = zeros(n);
 out(randperm(n^2, ceil(n^2*k/100))) = 1;
 
-vec = randi(100, sqrt(n));
+vec = randi(100, sqrt(n));    
 vec = reshape(vec.', 1, [])
 
 for a = 1:n
