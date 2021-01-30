@@ -35,7 +35,6 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
-
     std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
     CPUMatrix sparseMatrixA = read_matrix_in_csr(pathMatrixA);
     CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
