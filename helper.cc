@@ -22,6 +22,7 @@ void print_2D_array(double **arr, int height, int width) {
     }
 }
 
+
 void print_matrix_vector_dense_format(double *elements, int size) {
     for (int i = 0; i < size; i++) {
         std::cout << elements[i] << " ";
@@ -29,7 +30,7 @@ void print_matrix_vector_dense_format(double *elements, int size) {
     std::cout << std::endl;
 }
 
-void print_matrix_vector_dense_format(int* elements, int size) {
+void print_matrix_vector_dense_format(int *elements, int size) {
     for (int i = 0; i < size; i++) {
         std::cout << elements[i] << " ";
     }

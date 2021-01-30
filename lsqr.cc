@@ -19,7 +19,6 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
     std::tuple<int, int , double*> A = read_file(pathMatrixA);
     std::tuple<int, int , double*> b = read_file(pathVectorb);
 
-
     /* <<<< ---------------- READ DATA IN CPUMATRIX ----------------------- >>>> */
     CPUMatrix cpuMatrixA = matrix_alloc_cpu(std::get<0>(A), std::get<1>(A));
     cpuMatrixA.elements = std::get<2>(A);
@@ -36,7 +35,6 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
     std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
-    CPUMatrix sparseMatrixA = read_matrix_in_csr(pathMatrixA);
     CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
     printTruncatedVector(cuSPARSEResult);
 
@@ -46,7 +44,7 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
     CPUMatrix resultKernel = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
     
     print_matrix_vector_dense_format(cpuVector_b.elements, cpuVector_b.width * cpuVector_b.height);
-    resultKernel = sparseLSQR_with_kernels(cpuVector_b, cpuVector_b, 0.0, ebs);
+    resultKernel = sparseLSQR_with_kernels(sparseMatrixA, cpuVector_b, lambda, ebs);
     
     // Testing
     //compare_lsqr(cpuMatrixA, cpuVectorb, cpuVectorb, lambda, ebs);
@@ -54,7 +52,7 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
 
     /* <<<< ---------------- FREE CPUMATRIX MEMORY ----------------------- >>>>  */
-    //free(std::get<2>(A));
+    free(std::get<2>(A));
     free(std::get<2>(b));
 
 }
