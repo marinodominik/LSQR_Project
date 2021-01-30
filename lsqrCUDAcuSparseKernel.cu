@@ -134,13 +134,30 @@ __global__ void scalar_vector(const double *in_data, double *out_data, const dou
 
 
 //shared memory
-__global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result) {
+__global__ void matrix_vector_multiplication(const double *val, const double *rowPtr, const double *colPtr, const double *vector, double *result, 
+                                            const int elementSize, const int rowSize, const int colSize, 
+                                            const int height, const int width) {
+    
     //cuSparseCsrSpMV
 }
 
 
-GPUMatrix get_matrix_vector_multiplication(const GPUMatrix A_sparse, const GPUMatrix b_dense) {
-    return b_dense;
+GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
+    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
+
+    int grid_height = div_up(matrix.height, BLOCK_SIZE);
+    int grid_width = div_up(matrix.width, BLOCK_SIZE);
+    dim3 dimGrid(grid_height, grid_width);
+
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
+    
+    sqaure_vector<<<grids, dimBlock>>>(); 
+    matrix_vector_multiplication<<<dimGrid, dimBlock, sh_memory_size>>>(matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements,
+                                                                        matrix.elementSize, matrix.rowSize, matrix.colSize,
+                                                                        matrix.height, matrix.width);
+
+    return result;
 }
 
 
