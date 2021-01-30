@@ -139,7 +139,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble = phi / rho;
 		status = cublasDaxpy(handle,w.height,&tempDouble,w.elements, 1,x.elements, 1);
 		cuBLASCheck(status,__LINE__);
-		printVector(i, x,"x");
+		//printVector(i, x,"x");
 		//	w = v - (theta / rho) * w ;
 		tempDouble = (-1.0) * (theta / rho);
 		cudaMemcpy (tempVector.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);

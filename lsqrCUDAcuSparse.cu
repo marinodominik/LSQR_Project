@@ -100,7 +100,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         scaleNormalvector(tempDense,phi/rho,tempVector); 
         //x = x + (phi / rho) * w ;          
         vectorAddSub(x,tempDense,true,tempVector);
-        printDenseVector(x,"x",tempVector);
+        //printDenseVector(x,"x",tempVector);
         //	w = -(theta / rho) * w + v;
         scaleNormalvector(w,(theta/rho)*(-1),tempVector); 
         vectorAddSub(w,v,true,tempVector);

@@ -1,5 +1,5 @@
 n = 100;
-k = 0; %percentage
+k = 100 %percentage
 
 out = zeros(n);
 out(randperm(n^2, ceil(n^2*k/100))) = 1;
@@ -10,7 +10,7 @@ vec = reshape(vec.', 1, [])
 for a = 1:n
   for b = 1:n
     if out(a, b) == 1
-       r = rand(1,1)
+       r = randi(n)
        out(a, b) = r;
     end
   endfor
