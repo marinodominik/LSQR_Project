@@ -1,10 +1,10 @@
-n = 729;
-k = 100; %percentage
+n = 9;   %n has to be quadratic (i.e, 4, 9, 16, 25, 36, ...), so sqrt(n) has to be an intiger
+k = 100; %percentage of elements that are filled
 
 out = zeros(n);
 out(randperm(n^2, ceil(n^2*k/100))) = 1;
 
-vec = randi(100, sqrt(n));
+vec = randi(100, sqrt(n));    
 vec = reshape(vec.', 1, [])
 
 for a = 1:n
