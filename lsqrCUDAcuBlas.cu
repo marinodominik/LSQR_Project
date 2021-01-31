@@ -28,7 +28,7 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	double tempDouble = 1.0;
 	double tempDouble2 = 0.0;
 	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width);
-	cuBLASCheck(status,__LINE__); 
+	cuBLASCheck(__LINE__); 
 
 	matrix_free_gpu(tempGpuMatrixA);
 
@@ -43,10 +43,10 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	for(int i=0;i<b.height;i++){
 		fillingToX.elements[i]=0;
 	}
-	cuBLASCheck(status,__LINE__); 
+	cuBLASCheck(__LINE__); 
 	matrix_upload(fillingToX,x);
 	cublasDestroy(handle);
-	cuBLASCheck(status,__LINE__); 
+	cuBLASCheck(__LINE__); 
 
 	return cublasLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs);
 }
@@ -55,34 +55,34 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
 	cublasHandle_t handle;
 	cublasStatus_t status;
-	cuBLASCheck(status,__LINE__); 
+	cuBLASCheck(__LINE__); 
 	status = cublasCreate(&handle);
 	prev_err = 100000000; 
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//init stage
 	//beta = norm(b)
 	status = cublasDnrm2(handle, b.height, b.elements,1,&beta); 
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//u = b/beta
 	cudaMemcpy (u.elements, b.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
 	tempDouble = 1/beta;
 	status = cublasDscal(handle, u.height,&tempDouble,u.elements,1);
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//printVector(-1,x,"X");
 	//printVector(-1,u,"u");
 	//v = A'*u
 	tempDouble = 0.0;
 	tempDouble2 = 1.0;
 	status = cublasDgemv (handle, CUBLAS_OP_T, A.width, A.height,&tempDouble2,A.elements, A.width, u.elements,1,&tempDouble, v.elements, 1);
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//printVector(-1,v,"V");
 	//alpha = norm(v)
 	status = cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//v = v/alpha;
 	tempDouble = 1/alpha;
 	status = cublasDscal(handle, v.height,&tempDouble,v.elements,1);
-	cuBLASCheck(status,__LINE__);
+	cuBLASCheck(__LINE__); 
 	//printVector(-1,v,"v");
 	//w = v;
 	cudaMemcpy (w.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
@@ -98,28 +98,28 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble = alpha*(-1.0);
 		tempDouble2 = 1.0;
 		status = cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, v.elements,1,&tempDouble, u.elements, 1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//beta = norm(u);
 		status = cublasDnrm2(handle, u.height, u.elements,1,&beta); 
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		// u = u / beta;
 		tempDouble = 1/beta;
 		status = cublasDscal(handle, u.height,&tempDouble,u.elements,1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//printVector(-1,u,"u");
 		// v = A' * u - beta * v;
 		tempDouble = (-1.0)*beta;
 		tempDouble2 = 1.0;
 		status = cublasDgemv (handle, CUBLAS_OP_T, A.width,A.height,&tempDouble2,A.elements, A.width, u.elements,1, &tempDouble, v.elements, 1);
 
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//alpha = norm(v)
 		status = cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//v = v/alpha;
 		tempDouble = 1/alpha;
 		status = cublasDscal(handle, v.height,&tempDouble,v.elements,1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//printVector(-1,v,"v");
 
 		//next orthogonal transformation
@@ -138,13 +138,13 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 
 		tempDouble = phi / rho;
 		status = cublasDaxpy(handle,w.height,&tempDouble,w.elements, 1,x.elements, 1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//printVector(i, x,"x");
 		//	w = v - (theta / rho) * w ;
 		tempDouble = (-1.0) * (theta / rho);
 		cudaMemcpy (tempVector.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		status = cublasDaxpy(handle,tempVector.height,&tempDouble,w.elements, 1,tempVector.elements, 1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		cudaMemcpy (w.elements, tempVector.elements, tempVector.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		//printVector(i, w,"w");
 		//check for convergence
@@ -154,11 +154,11 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble = -1.0;
 		tempDouble2 = 1.0;
 		status = cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, x.elements,1,&tempDouble, tempVector.elements, 1);
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		//printVector(-1, tempVector,"temp");
 
 		status = cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
-		cuBLASCheck(status,__LINE__);
+		cuBLASCheck(__LINE__); 
 		improvment = prev_err-curr_err;
 		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
 		if(i==A.height) break;
@@ -173,10 +173,13 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 
 
 
-void cuBLASCheck(cublasStatus_t status, int line){
-	if(status != CUBLAS_STATUS_SUCCESS){
-		printf("error code %d, line(%d)\n", status, line);
-		exit(EXIT_FAILURE);
+void cuBLASCheck(int line){
+	const cudaError_t err = cudaGetLastError();                            
+	if (err != cudaSuccess) {                                              
+    	const char *const err_str = cudaGetErrorString(err);               
+    	std::cerr << "Cuda error in " << __FILE__ << ":" << line - 1   
+            << ": " << err_str << " (" << err << ")" << std::endl;   
+            exit(EXIT_FAILURE);                                                                    
 	}
 }
 

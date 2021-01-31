@@ -1,4 +1,4 @@
-n = 9;
+n = 729;
 k = 100; %percentage
 
 out = zeros(n);
