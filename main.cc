@@ -19,7 +19,7 @@ int main(int argc, char ** argv) {
         std::cout << "using TEST-MATRIX, TEST-VECTOR and TEST-LAMBDA from data-folder\n" << std::endl;
 
         pathMatrixA = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/sparseMatrix8x8.txt";
-        pathVector_b = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/testVector.txt";
+        pathVector_b = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/vector3000.txt";
         lambda = 0;
 
         /* TODO: 

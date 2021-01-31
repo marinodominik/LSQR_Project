@@ -38,20 +38,27 @@ __global__ void sqaure_vector(const double *vector, double *result, const int si
 
 double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
-    double *result = new double[0];
-    cudaMalloc(&result, 1 * sizeof(double));
 
-    int grids = div_up(denseVector.height, BLOCK_SIZE);
+    int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
+    
+    double *result = new double[grids];
+    cudaMalloc(&result, grids * sizeof(double));
+    
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
     norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
     
-    double r;
-    cudaMemcpy(&r, result, 1 * sizeof(double), cudaMemcpyDeviceToHost);
+    double *values = new double[grids]; 
+    cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
+    
+    double norm = 0.0;
+    for (int i= 0; i< grids; i++) {
+        norm += values[i];
+    }
 
-    return sqrt(r);
+    return sqrt(norm);
 }
 
 
@@ -74,7 +81,7 @@ __global__ void norm2(const double *in_data, double *result) {
     
     //thread 0 writes in result back to global memory
     if (tid == 0) {
-        result[0] = sdata[0];
+        result[blockIdx.x] = sdata[0]; //Da wir n-grids haben, werden die zahlen für jeden block in eine eigene zelle im global gespeichert
     }
 }
 
@@ -84,7 +91,7 @@ __global__ void norm2(const double *in_data, double *result) {
 GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
     GPUMatrix result = matrix_alloc_gpu(denseA.height, denseA.width);
 
-    int grids = div_up(denseA.height, BLOCK_SIZE);
+    int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseA.height);
 
@@ -113,7 +120,7 @@ __global__ void add_subtract_vector(const double *a, const double *b, double *c,
 GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
-    int grids = div_up(vector.height, BLOCK_SIZE);
+    int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     scalar_vector<<<grids, dimBlock>>>(vector.elements, result.elements, scalar, vector.height * vector.width);
     
@@ -145,16 +152,16 @@ __global__ void matrix_vector_multiplication(const double *val, const double *ro
 GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
-    int grid_height = div_up(matrix.height, BLOCK_SIZE);
-    int grid_width = div_up(matrix.width, BLOCK_SIZE);
+    int grid_height = div_up(matrix.height, BLOCK_SIZE * BLOCK_SIZE);
+    int grid_width = div_up(matrix.width, BLOCK_SIZE * BLOCK_SIZE);
     
     dim3 dimGrid(grid_height, grid_width);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
-    matrix_vector_multiplication<<<dimGrid, dimBlock, sh_memory_size>>>(matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements,
+    /*matrix_vector_multiplication<<<dimGrid, dimBlock, sh_memory_size>>>(matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements,
                                                                         matrix.elementSize, matrix.rowSize, matrix.colSize,
-                                                                        matrix.height, matrix.width);
+                                                                        matrix.height, matrix.width);))*/
 
     return result;
 }
@@ -163,7 +170,8 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix result = get_matrix_vector_multiplication(A, b);
+    GPUMatrix result = matrix_alloc_gpu(b.height, b.width);
+    result = get_csr_matrix_vector_multiplication(A, b);
     return result; 
 }
 

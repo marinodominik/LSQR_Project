@@ -31,4 +31,3 @@ filename_vector = strcat("vector", num2str(n),"x1p", num2str(k),".txt");
 
 dlmwrite(filename_matrix, matrix,  'delimiter', '\n');
 dlmwrite(filename_vector, vector,  'delimiter', '\n');
-
