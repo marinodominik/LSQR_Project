@@ -1,8 +1,8 @@
+#include <iostream>
 #include <stdio.h>
 #include "lsqr.h"
 #include "lsqrCUDAcuBlas.h"
 #include "matrix.h"
-
 #include <cusparse.h>
 #include <math.h>
 #include <cuda_runtime.h>
@@ -18,11 +18,15 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	cublasHandle_t handle;
 	cublasStatus_t status;
 	status = cublasCreate(&handle);
+	cuBLASCheck(__LINE__); 
 
     GPUMatrix tempGpuMatrixA = matrix_alloc_gpu(A.height,A.width);
 	matrix_upload(A,tempGpuMatrixA);
+	cuBLASCheck(__LINE__); 
+
 	GPUMatrix gpuMatrixA = matrix_alloc_gpu(A.height,A.width);
 	matrix_upload(A,gpuMatrixA);
+	cuBLASCheck(__LINE__); 
 
 	//TRANSPOSE A
 	double tempDouble = 1.0;

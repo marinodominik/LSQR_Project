@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include <cstdlib>
 #include <iomanip>
+#include <iostream>
 
 CPUMatrix matrix_alloc_cpu(int height, int width) {
     CPUMatrix m;
@@ -57,7 +58,9 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	Md.height = height;
 	Md.width = width;
 	int size = width * height * sizeof(double);
-	cudaError_t err = cudaMallocPitch(&Md.elements, &Md.pitch, size, height);
+	std::cout<<"height: " <<height<<" width: "<<width<<" size: "<<size<<std::endl;
+	cudaError_t err = cudaMalloc(&Md.elements, size);
+	
 	return Md;
 }
 

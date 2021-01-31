@@ -10,6 +10,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <stdio.h>
+#include <iostream>
 
 
 CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs);
@@ -17,7 +18,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A);
 
 
-void cuSPARSECheck(cusparseStatus_t status, int line);
+void cuSPARSECheck(int line);
 double normalVectorNorm(cusparseDnVecDescr_t src, GPUMatrix temp);
 void scaleNormalvector(cusparseDnVecDescr_t src,double alpha,GPUMatrix temp);
 void vectorAddSub(cusparseDnVecDescr_t a, cusparseDnVecDescr_t b, bool sign,GPUMatrix temp);
