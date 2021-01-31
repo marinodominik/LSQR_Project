@@ -141,27 +141,30 @@ __global__ void scalar_vector(const double *in_data, double *out_data, const dou
 
 
 //shared memory
-__global__ void matrix_vector_multiplication(const double *val, const double *rowPtr, const double *colPtr, const double *vector, double *result, 
-                                             const int elementSize, const int rowSize, const int colSize, 
-                                             const int height, const int width) {
-    
-    //cuSparseCsrSpMV
+__global__ void matrix_vector_multiplication(const int n_rows, const double *val, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+    unsigned int row = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < n_rows) {
+        const int row_start = rowPtr[row];
+        const int row_end = rowPtr[row + 1];
+
+        double sum = 0.0;
+        for (int idx = row_start; idx < row_end; idx ++) {
+            int col = colIdx[idx];
+            sum += val[idx] * x[col];
+        }
+        result[row] = sum;
+    }
 }
 
 
 GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
-    int grid_height = div_up(matrix.height, BLOCK_SIZE * BLOCK_SIZE);
-    int grid_width = div_up(matrix.width, BLOCK_SIZE * BLOCK_SIZE);
-    
-    dim3 dimGrid(grid_height, grid_width);
+    int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
-    
-    /*matrix_vector_multiplication<<<dimGrid, dimBlock, sh_memory_size>>>(matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements,
-                                                                        matrix.elementSize, matrix.rowSize, matrix.colSize,
-                                                                        matrix.height, matrix.width);))*/
+    //int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
+    matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
 
     return result;
 }
