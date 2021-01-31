@@ -25,4 +25,4 @@ void vectorAddSub(cusparseDnVecDescr_t a, cusparseDnVecDescr_t b, bool sign,GPUM
 void copyVector(cusparseDnVecDescr_t dst,cusparseDnVecDescr_t src,GPUMatrix temp);
 void printDenseVector(cusparseDnVecDescr_t src,const char* name,GPUMatrix temp);
 void printNormalVector(GPUMatrix x, const char* name);
-void printSparseMatrix(cusparseDnVecDescr_t src,const char* name,GPUMatrix temp);
+void printSparseMatrix(cusparseSpMatDescr_t src,const char* name,GPUMatrix temp);

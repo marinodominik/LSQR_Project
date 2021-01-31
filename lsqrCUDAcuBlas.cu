@@ -16,8 +16,8 @@
 */
 CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	cublasHandle_t handle;
-	cublasStatus_t status;
-	status = cublasCreate(&handle);
+	cublasCreate(&handle);
+
 	cuBLASCheck(__LINE__); 
 
     GPUMatrix tempGpuMatrixA = matrix_alloc_gpu(A.height,A.width);
@@ -58,36 +58,33 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs){
 	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
 	cublasHandle_t handle;
-	cublasStatus_t status;
+	cublasCreate(&handle);
 	cuBLASCheck(__LINE__); 
-	status = cublasCreate(&handle);
 	prev_err = 100000000; 
-	cuBLASCheck(__LINE__); 
 	//init stage
 	//beta = norm(b)
-	status = cublasDnrm2(handle, b.height, b.elements,1,&beta); 
+	cublasDnrm2(handle, b.height, b.elements,1,&beta); 
 	cuBLASCheck(__LINE__); 
 	//u = b/beta
 	cudaMemcpy (u.elements, b.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
 	tempDouble = 1/beta;
-	status = cublasDscal(handle, u.height,&tempDouble,u.elements,1);
+	cublasDscal(handle, u.height,&tempDouble,u.elements,1);
 	cuBLASCheck(__LINE__); 
 	//printVector(-1,x,"X");
-	//printVector(-1,u,"u");
+	printVector(-1,u,"u");
 	//v = A'*u
 	tempDouble = 0.0;
 	tempDouble2 = 1.0;
-	status = cublasDgemv (handle, CUBLAS_OP_T, A.width, A.height,&tempDouble2,A.elements, A.width, u.elements,1,&tempDouble, v.elements, 1);
+	cublasDgemv (handle, CUBLAS_OP_T, A.width, A.height,&tempDouble2,A.elements, A.width, u.elements,1,&tempDouble, v.elements, 1);
 	cuBLASCheck(__LINE__); 
-	//printVector(-1,v,"V");
 	//alpha = norm(v)
-	status = cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
+	cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
 	cuBLASCheck(__LINE__); 
 	//v = v/alpha;
 	tempDouble = 1/alpha;
-	status = cublasDscal(handle, v.height,&tempDouble,v.elements,1);
+	cublasDscal(handle, v.height,&tempDouble,v.elements,1);
 	cuBLASCheck(__LINE__); 
-	//printVector(-1,v,"v");
+	printVector(-1,v,"v");
 	//w = v;
 	cudaMemcpy (w.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
 	phi_tag = beta; rho_tag = alpha;
@@ -95,36 +92,36 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 
 	//printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
 
-	int i = 0, counter = 0;
+	int i = 0;
 	while(true){
 		//next bidiagonlization
 		// u = A * v - alpha * u;
 		tempDouble = alpha*(-1.0);
 		tempDouble2 = 1.0;
-		status = cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, v.elements,1,&tempDouble, u.elements, 1);
+		cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, v.elements,1,&tempDouble, u.elements, 1);
 		cuBLASCheck(__LINE__); 
 		//beta = norm(u);
-		status = cublasDnrm2(handle, u.height, u.elements,1,&beta); 
+		cublasDnrm2(handle, u.height, u.elements,1,&beta); 
 		cuBLASCheck(__LINE__); 
 		// u = u / beta;
 		tempDouble = 1/beta;
-		status = cublasDscal(handle, u.height,&tempDouble,u.elements,1);
+		cublasDscal(handle, u.height,&tempDouble,u.elements,1);
 		cuBLASCheck(__LINE__); 
-		//printVector(-1,u,"u");
+		printVector(-1,u,"u");
 		// v = A' * u - beta * v;
 		tempDouble = (-1.0)*beta;
 		tempDouble2 = 1.0;
-		status = cublasDgemv (handle, CUBLAS_OP_T, A.width,A.height,&tempDouble2,A.elements, A.width, u.elements,1, &tempDouble, v.elements, 1);
+		cublasDgemv (handle, CUBLAS_OP_T, A.width,A.height,&tempDouble2,A.elements, A.width, u.elements,1, &tempDouble, v.elements, 1);
 
 		cuBLASCheck(__LINE__); 
 		//alpha = norm(v)
-		status = cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
+		cublasDnrm2(handle, v.height, v.elements,1,&alpha); 
 		cuBLASCheck(__LINE__); 
 		//v = v/alpha;
 		tempDouble = 1/alpha;
-		status = cublasDscal(handle, v.height,&tempDouble,v.elements,1);
+		cublasDscal(handle, v.height,&tempDouble,v.elements,1);
 		cuBLASCheck(__LINE__); 
-		//printVector(-1,v,"v");
+		printVector(-1,v,"v");
 
 		//next orthogonal transformation
 		rho = sqrt(pow (rho_tag, 2.0) + pow (beta, 2.0));
@@ -134,34 +131,34 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		rho_tag = (-1) * c * alpha;
 		phi = c * phi_tag;
 		phi_tag = s * phi_tag;
-		//printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
-		//printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
+		printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
+		printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
 		//updating x,w
 		//x =  (phi / rho) * w + x;             (in cublas : x is y, w is x)
-		//printVector(i, w,"w");
+		printVector(i, w,"w");
 
 		tempDouble = phi / rho;
-		status = cublasDaxpy(handle,w.height,&tempDouble,w.elements, 1,x.elements, 1);
+		cublasDaxpy(handle,w.height,&tempDouble,w.elements, 1,x.elements, 1);
 		cuBLASCheck(__LINE__); 
-		//printVector(i, x,"x");
+		printVector(i, x,"x");
 		//	w = v - (theta / rho) * w ;
 		tempDouble = (-1.0) * (theta / rho);
 		cudaMemcpy (tempVector.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
-		status = cublasDaxpy(handle,tempVector.height,&tempDouble,w.elements, 1,tempVector.elements, 1);
+		cublasDaxpy(handle,tempVector.height,&tempDouble,w.elements, 1,tempVector.elements, 1);
 		cuBLASCheck(__LINE__); 
 		cudaMemcpy (w.elements, tempVector.elements, tempVector.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		//printVector(i, w,"w");
 		//check for convergence
+		printVector(i, b,"b");
 		//residual = norm(A*x - b);
 		cudaMemcpy (tempVector.elements, b.elements, tempVector.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		//Ax - b (result in tempVector)
 		tempDouble = -1.0;
 		tempDouble2 = 1.0;
-		status = cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, x.elements,1,&tempDouble, tempVector.elements, 1);
+		cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, x.elements,1,&tempDouble, tempVector.elements, 1);
 		cuBLASCheck(__LINE__); 
-		//printVector(-1, tempVector,"temp");
-
-		status = cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
+		printVector(-1, tempVector,"result");
+		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
 		cuBLASCheck(__LINE__); 
 		improvment = prev_err-curr_err;
 		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
