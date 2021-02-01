@@ -213,11 +213,9 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 
-<<<<<<< HEAD
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs, const int max_iters) {
     cusparseHandle_t handle;
-=======
-GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+
    /* cusparseHandle_t handle;
 >>>>>>> 364bf7716e8d001ecf30bc8ed6ea3fbc89b8f910
     cusparseCreate(&handle);
