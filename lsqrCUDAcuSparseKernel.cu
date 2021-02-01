@@ -6,19 +6,11 @@
 
 #define BLOCK_SIZE 32            //max threads in a block
 
-<<<<<<< HEAD
 __global__ void sqaure_vector(double *vector, const int size);
 __global__ void norm2(const double *in_data, double *result, int size);
 __global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
-__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
-=======
-__global__ void sqaure_vector(const double *vector, double *result, const int size);
-__global__ void norm2(const double *in_data, double *result, int elementSize);
-__global__ void add_subtract_vector (double *a, const double *b, const bool operation, const int size);
-__global__ void scalar_vector( double *vector, const double scalar, const int size);
-__global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
->>>>>>> fc542f3ebceac1d1af0a442a2220ea566270d687
+__global__ void matrix_vector_multiplication(const int n_row, const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
 
 
 
@@ -104,39 +96,10 @@ double getNorm2(const GPUMatrix denseVector) {
 <<<<<<<<<<-------------------- END NORM ----------------------------->>>>>>>>>>>>>>>>>
 */
 
-<<<<<<< HEAD
-=======
-__global__ void norm2(const double *in_data, double *result,int elementSize) {
-    extern __shared__ double sdata[];
-
-    unsigned int tid = threadIdx.x;
-    unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
-    if(tid < elementSize){
-        sdata[tid] = in_data[i];        //load global data in sh_memory
-    }else{
-        sdata[tid] = 0; 
-    }
-    __syncthreads();
-
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-
-        if(tid < s) {
-            sdata[tid] += sdata[tid + s];
-        }
-        __syncthreads();
-    }
-    
-    //thread 0 writes in result back to global memory
-    if (tid == 0) {
-        result[blockIdx.x] = sdata[0]; //Da wir n-grids haben, werden die zahlen für jeden block in eine eigene zelle im global gespeichert
-    }
-}
->>>>>>> fc542f3ebceac1d1af0a442a2220ea566270d687
 
 
 
 
-<<<<<<< HEAD
 /*
 <<<<<<<<<<-------------------- ADDITION AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
 */
@@ -145,11 +108,6 @@ void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, const boo
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
 
-=======
-void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
-    int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
->>>>>>> fc542f3ebceac1d1af0a442a2220ea566270d687
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
 }
 
@@ -175,10 +133,6 @@ __global__ void add_subtract_vector(double *a, const double *b, const bool opera
 <<<<<<<<<<-------------------- END ADDITON AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
 */
 
-<<<<<<< HEAD
-=======
-void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
->>>>>>> fc542f3ebceac1d1af0a442a2220ea566270d687
 
 
 
@@ -189,7 +143,6 @@ void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
 void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-<<<<<<< HEAD
 
     scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
 }
@@ -200,18 +153,6 @@ __global__ void scalar_vector(double *in_data, const double scalar, const int si
     
     if (i < size) {
         in_data[i] = scalar * in_data[i];
-=======
-    scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
-    
-}
-
-
-__global__ void scalar_vector(double *vector, const double scalar, const int size) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (i < size) {
-        vector[i] = scalar * vector[i];
->>>>>>> fc542f3ebceac1d1af0a442a2220ea566270d687
     }
     __syncthreads();
 }
@@ -240,6 +181,7 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
             int col = colIdx[idx];
             sum += elements[idx] * x[col];
         }
+        printf("sum: %lf\n", sum);
         result[row] = sum;
     }
     __syncthreads();
