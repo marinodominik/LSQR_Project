@@ -1,9 +1,8 @@
 #include "lsqrCUDAcuSparse.h"
-
+void printVectorj(int iteration,GPUMatrix x, const char* name);
 CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
-    cusparseStatus_t status;
     cusparseHandle_t handle;
-    status = cusparseCreate(&handle);
+    cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
     GPUMatrix u = matrix_alloc_gpu(b.height,b.width);
     GPUMatrix v = matrix_alloc_gpu(b.height,b.width);
@@ -22,9 +21,8 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
     size_t tempInt;
     double *buffer;
-    cusparseStatus_t status;
     cusparseHandle_t handle;
-    status = cusparseCreate(&handle);
+    cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
     prev_err = 100000000; 
     cusparseSpMatDescr_t spMatrixA;
@@ -32,7 +30,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     GPUMatrix GPUA =  matrix_alloc_sparse_gpu(A.height,A.width,A.elementSize,A.rowSize,A.columnSize);
     matrix_upload_cuSparse(A,GPUA);
     cuSPARSECheck(__LINE__);
-    status = cusparseCreateCsr(&spMatrixA,GPUA.height,GPUA.width,GPUA.elementSize,GPUA.csrRow,GPUA.csrCol,GPUA.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
+    cusparseCreateCsr(&spMatrixA,GPUA.height,GPUA.width,GPUA.elementSize,GPUA.csrRow,GPUA.csrCol,GPUA.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
     cuSPARSECheck(__LINE__);
     cusparseCreateDnVec(&b,VECb.height,VECb.elements,CUDA_R_64F);
     cusparseCreateDnVec(&u,VECb.height,VECu.elements,CUDA_R_64F);
@@ -79,7 +77,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     //printDenseVector(w,"w",tempVector);
     
     phi_tag = beta; rho_tag = alpha;
-	int i = 0, counter = 0;
+	int i = 0;
 	while(true){
 		//next bidiagonlization
         // u = A * v - alpha * u;
@@ -139,11 +137,15 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cudaMemcpy (tempVector2.elements,tempVector.elements, VECu.height*sizeof(double), cudaMemcpyDeviceToDevice);
         cusparseSpMV(handle,CUSPARSE_OPERATION_NON_TRANSPOSE,&tempDouble,spMatrixA,x,&tempDouble2,tempDense2,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
         cuSPARSECheck(__LINE__);
-
         //residual = norm(A*x - b);
-        //Ax - b (result in tempDense)
-        curr_err = normalVectorNorm(tempDense2,tempVector);
+        //Ax - b (result in tempDense2)
         printDenseVector(tempDense2,"result",tempVector);
+        curr_err = normalVectorNorm(tempDense2,tempVector2);
+        printDenseVector(tempDense2,"result",tempVector);
+
+        cuSPARSECheck(__LINE__);
+        printDenseVector(tempDense,"temo",tempVector);
+
         improvment = prev_err-curr_err;
         printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
         if(i==A.height) break;
@@ -158,9 +160,8 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 }
 
 void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A){
-    cusparseStatus_t status;
-    status = cusparseDestroySpMat(A);
-    status = cusparseDestroy(handle);
+    cusparseDestroySpMat(A);
+    cusparseDestroy(handle);
     cuSPARSECheck(__LINE__);
 }
 
@@ -177,10 +178,11 @@ void cuSPARSECheck(int line){
 
 double normalVectorNorm(cusparseDnVecDescr_t src, GPUMatrix temp){
     cusparseDnVecGetValues(src,(void**)&temp.elements);
+    printVector(-1,temp,"norm");
     cuSPARSECheck(__LINE__);
-
-    return getNorm2(temp);
-    cuSPARSECheck(__LINE__);
+    double res = getNorm2(temp);
+    printf("res:  %lf ", res);
+    return res;
 }
 void scaleNormalvector(cusparseDnVecDescr_t src,double alpha,GPUMatrix temp){
     cusparseDnVecGetValues(src,(void**)&temp.elements);
@@ -225,16 +227,22 @@ void printSparseMatrix(cusparseSpMatDescr_t src,const char* name,GPUMatrix temp)
     matrix_free_cpu(tempCPUMatrix);
 }
 void printNormalVector(GPUMatrix x, const char* name){
-    printf("%s: element size: %d\n",name,x.elementSize);
-    CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.elementSize,1);
-    tempCPUMatrix.elementSize = x.elementSize;
-    cuSPARSECheck(__LINE__);
+    printf("%s: \n",name);
+    CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.height,1);
     matrix_download_cuSparse(x,tempCPUMatrix);
-    cuSPARSECheck(__LINE__);
-
 	for(int i = 0; i < x.elementSize; i++){
 		printf("%lf ", tempCPUMatrix.elements[i]);
 	}
     printf("\n");
     matrix_free_cpu(tempCPUMatrix);
+}
+void printVectorj(int iteration,GPUMatrix x, const char* name){
+	printf("%s: ",name);
+	CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.height,x.width);
+	matrix_download(x,tempCPUMatrix);
+	//printf("iteration number: %d\n", iteration);
+	for(int i = 0; i < tempCPUMatrix.height; i++){
+		printf("%lf ", tempCPUMatrix.elements[i]);
+	}
+	printf("\n");
 }
