@@ -6,7 +6,7 @@
 
 #define BLOCK_SIZE 32            //max threads in a block
 
-__global__ void sqaure_vector(double *vector, const int size);
+__global__ void sqaure_vector(const double *vector, double *tmp, const int size);
 __global__ void norm2(const double *in_data, double *result, int size);
 __global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);  
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
@@ -26,13 +26,13 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { /
 <<<<<<<<<<-------------------- NORM ----------------------------->>>>>>>>>>>>>>
 */
 
-__global__ void sqaure_vector(double *vector, const int size) {
+__global__ void sqaure_vector(const double *vector, double *tmp, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(i >= size) { 
         return;
     } else {
-        vector[i] = vector[i] * vector[i];
+        tmp[i] = vector[i] * vector[i];
     }
 
     __syncthreads();
