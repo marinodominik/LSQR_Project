@@ -280,7 +280,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     return x; 
 =======
     return b; */
->>>>>>> 364bf7716e8d001ecf30bc8ed6ea3fbc89b8f910
+
 }
 
 
