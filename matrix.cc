@@ -58,7 +58,6 @@ GPUMatrix matrix_alloc_gpu(int height, int width) {
 	Md.height = height;
 	Md.width = width;
 	int size = width * height * sizeof(double);
-	std::cout<<"height: " <<height<<" width: "<<width<<" size: "<<size<<std::endl;
 	cudaError_t err = cudaMalloc(&Md.elements, size);
 	
 	return Md;
