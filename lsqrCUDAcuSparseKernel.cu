@@ -78,7 +78,7 @@ double getNorm2(const GPUMatrix denseVector) {
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result,denseVector.height);
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
@@ -87,10 +87,9 @@ double getNorm2(const GPUMatrix denseVector) {
     for (int i= 0; i< grids; i++) {
         norm += values[i];
     }
-    printf("hier");
     matrix_free_gpu(tmp);
     delete[] values;
-
+    delete[] result;
     return sqrt(norm);
 }
 
@@ -209,7 +208,7 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    cusparseHandle_t handle;
+   /* cusparseHandle_t handle;
     cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
 
@@ -229,7 +228,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     cudaMemcpy (u.elements, b.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
     GPUMatrix v = matrix_alloc_gpu(b.height, b.width);
 
-    /* INIZALIZATION PART */
+    /* INIZALIZATION PART 
     //beta = norm(b);
     double beta = getNorm2(u);
 
@@ -251,7 +250,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     history = zeros(length(b),0);
     history(:,end+1) = x;
 
-    return b; 
+    return b; */
 }
 
 
