@@ -141,7 +141,7 @@ __global__ void scalar_vector(const double *in_data, double *out_data, const dou
 
 
 //shared memory
-__global__ void matrix_vector_multiplication(const int n_rows, const double *val, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
     unsigned int row = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (row < n_rows) {
@@ -151,7 +151,7 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *val
         double sum = 0.0;
         for (int idx = row_start; idx < row_end; idx ++) {
             int col = colIdx[idx];
-            sum += val[idx] * x[col];
+            sum += elements[idx] * x[col];
         }
         printf("sum: %lf\n", sum);
         result[row] = sum;
