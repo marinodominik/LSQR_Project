@@ -70,15 +70,14 @@ double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
 
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
-    
-    double *result = new double[grids];
-    cudaMalloc(&result, grids * sizeof(double));
-    
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
+    double *result;
+    cudaMalloc(&result, grids * sizeof(double));
+    
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result, tmp.height * tmp.width);
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
@@ -87,9 +86,10 @@ double getNorm2(const GPUMatrix denseVector) {
     for (int i= 0; i< grids; i++) {
         norm += values[i];
     }
-    printf("hier");
+
     matrix_free_gpu(tmp);
     delete[] values;
+    cudaFree(result);
 
     return sqrt(norm);
 }
@@ -208,10 +208,12 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 
-GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs, const int max_iters) {
     cusparseHandle_t handle;
     cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
+    size_t tempInt;
+    double *buffer;
 
     GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
     cudaMemcpy (A_transpose.elements, A.elements, A.elementSize * sizeof(double), cudaMemcpyDeviceToDevice);
@@ -219,7 +221,12 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     cudaMemcpy (A_transpose.csrCol, A.csrCol, A.columnSize * sizeof(int), cudaMemcpyDeviceToDevice);
 
     cuSPARSECheck(__LINE__);
-    cusparseCsr2cscEx2();
+    
+    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
+                                  A.elements, A.csrRow, A.csrCol, CUDA_R_64F, );
+    cudaMalloc(&buffer, tempInt);
+    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize, 
+                       A.elements, A.csrRow, A.csrCol, CUDA_R_64F, , CUSPARSE_INDEX_BASE_ZERO, cusparseCsr2CscAlg_t, );
     cuSPARSECheck(__LINE__);
 
     
@@ -236,27 +243,35 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     //u = b/beta;
     multiply_scalar_vector(u, beta);
 
+    //v = A'*u
     GPUMatrix v = get_csr_matrix_vector_multiplication(A_transpose, u);
+    
+    //alpha = norm(v)
+    double alpha = getNorm2(v);
 
-    v = A'*u;
-    alpha = norm(v);
-    v = v/alpha;
-    w = v;
-    x = 0;
-    phi_hat = beta;
-    rho_hat = alpha;
-    % (2) iterate
-    it_max = 10;
-    epsilon = 10^-3;
-    history = zeros(length(b),0);
-    history(:,end+1) = x;
+    //v = v/alpha;
+    multiply_scalar_vector(v, alpha);
+    
+    //w = v;
+    cudaMemcpy (w.elements, v.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
 
-    return b; 
+    //inizialize phi_hat and rho_hat
+    double phi_hat = beta;
+    double rho_hat = alpha;
+
+
+    // LOOP PART
+    for (int i = 0; i < max_iters, i++ ) {
+
+
+    }
+
+    return x; 
 }
 
 
 
-CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
+CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs, const int max_iters) {
     CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
     GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
 
@@ -275,32 +290,13 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     matrix_download(resultGPU, resultCPU);
 
     /* free GPU memory */
-    cudaFree(resultGPU.elements);
-    cudaFree(A_gpu.elements);
-    cudaFree(b_gpu.elements);
+    matrix_free_sparse_cpu(A_gpu);
+    matrix_free_gpu(b);
 
     return resultCPU;
 }
 
-
-
-
-
 /*
-    beta = norm(b);
-u = b/beta;
-v = A'*u;
-alpha = norm(v);
-v = v/alpha;
-w = v;
-x = 0;
-phi_hat = beta;
-rho_hat = alpha;
-% (2) iterate
-it_max = 10;
-epsilon = 10^-3;
-history = zeros(length(b),0);
-history(:,end+1) = x;
 for i = 1:it_max
     % (3) bidiagonalization
     u = A * v - alpha * u;

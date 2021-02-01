@@ -29,3 +29,4 @@ TODOS:
         create A_T somehow
         connect with kernels check
         solve issues with desc_t
+    -> max_iters in main einfügen
