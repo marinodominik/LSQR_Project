@@ -87,7 +87,7 @@ double getNorm2(const GPUMatrix denseVector) {
     for (int i= 0; i< grids; i++) {
         norm += values[i];
     }
-
+    printf("hier");
     matrix_free_gpu(tmp);
     delete[] values;
 
