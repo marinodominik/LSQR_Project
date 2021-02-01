@@ -67,16 +67,18 @@ __global__ void norm2(const double *in_data, double *result,int size) {
 
 
 double getNorm2(const GPUMatrix denseVector) {
+    GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
+
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
     
-    double *result;
+    double *result = new double[grids];
     cudaMalloc(&result, grids * sizeof(double));
     
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
-    sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, denseVector.height * denseVector.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(denseVector.elements, result, denseVector.height);
+    sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
@@ -86,8 +88,9 @@ double getNorm2(const GPUMatrix denseVector) {
         norm += values[i];
     }
 
-    cudaFree(result);
+    matrix_free_gpu(tmp);
     delete[] values;
+
     return sqrt(norm);
 }
 
@@ -190,7 +193,6 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
-    printf("grids: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     //int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
@@ -207,10 +209,47 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
+    cusparseHandle_t handle;
+    cusparseCreate(&handle);
+    cuSPARSECheck(__LINE__);
 
-    double beta = getNorm2(b);
-    printf("beta: %lf\n", beta);
+    GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    cudaMemcpy (A_transpose.elements, A.elements, A.elementSize * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy (A_transpose.csrRow, A.csrRow, A.rowSize * sizeof(int), cudaMemcpyDeviceToDevice);
+    cudaMemcpy (A_transpose.csrCol, A.csrCol, A.columnSize * sizeof(int), cudaMemcpyDeviceToDevice);
+
+    cuSPARSECheck(__LINE__);
+    cusparseCsr2cscEx2();
+    cuSPARSECheck(__LINE__);
+
+    
+    GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix w = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    cudaMemcpy (u.elements, b.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
+    GPUMatrix v = matrix_alloc_gpu(b.height, b.width);
+
+    /* INIZALIZATION PART */
+    //beta = norm(b);
+    double beta = getNorm2(u);
+
+    //u = b/beta;
+    multiply_scalar_vector(u, beta);
+
+    GPUMatrix v = get_csr_matrix_vector_multiplication(A_transpose, u);
+
+    v = A'*u;
+    alpha = norm(v);
+    v = v/alpha;
+    w = v;
+    x = 0;
+    phi_hat = beta;
+    rho_hat = alpha;
+    % (2) iterate
+    it_max = 10;
+    epsilon = 10^-3;
+    history = zeros(length(b),0);
+    history(:,end+1) = x;
 
     return b; 
 }
