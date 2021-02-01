@@ -18,3 +18,5 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A,cusparseDnVecDescr_t u, cusparseDnVecDescr_t v,cusparseDnVecDescr_t x, cusparseDnVecDescr_t tempVector);
 void cuSPARSECheck(int line);
 void printVector(int iteration,GPUMatrix x, const char* name);
+void initGPUVectors(const CPUMatrix &b, GPUMatrix &u,GPUMatrix &v, GPUMatrix& x, GPUMatrix &w, GPUMatrix &GPUb, GPUMatrix &tempVector);
+void cleanGPUVectors(GPUMatrix& u,GPUMatrix &v, GPUMatrix &x, GPUMatrix &w, GPUMatrix &GPUb, GPUMatrix &tempVector);

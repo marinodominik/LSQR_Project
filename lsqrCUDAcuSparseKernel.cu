@@ -70,8 +70,8 @@ double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
 
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
-    
-    double *result = new double[grids];
+
+    double *result;
     cudaMalloc(&result, grids * sizeof(double));
     
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
@@ -82,14 +82,16 @@ double getNorm2(const GPUMatrix denseVector) {
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
-    
+
     double norm = 0.0;
     for (int i= 0; i< grids; i++) {
         norm += values[i];
     }
+
     matrix_free_gpu(tmp);
     delete[] values;
-    delete[] result;
+    cudaFree(result);
+
     return sqrt(norm);
 }
 
