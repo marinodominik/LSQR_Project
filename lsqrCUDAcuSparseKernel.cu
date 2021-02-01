@@ -161,8 +161,10 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *val
             int col = colIdx[idx];
             sum += val[idx] * x[col];
         }
+        printf("sum: %lf\n", sum);
         result[row] = sum;
     }
+    __syncthreads();
 }
 
 
