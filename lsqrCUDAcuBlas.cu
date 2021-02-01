@@ -71,7 +71,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	cublasDscal(handle, u.height,&tempDouble,u.elements,1);
 	cuBLASCheck(__LINE__); 
 	//printVector(-1,x,"X");
-	printVector(-1,u,"u");
+	//printVector(-1,u,"u");
 	//v = A'*u
 	tempDouble = 0.0;
 	tempDouble2 = 1.0;
@@ -84,7 +84,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	tempDouble = 1/alpha;
 	cublasDscal(handle, v.height,&tempDouble,v.elements,1);
 	cuBLASCheck(__LINE__); 
-	printVector(-1,v,"v");
+	//printVector(-1,v,"v");
 	//w = v;
 	cudaMemcpy (w.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
 	phi_tag = beta; rho_tag = alpha;
@@ -96,8 +96,8 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	while(true){
 		//next bidiagonlization
 		// u = A * v - alpha * u;
-		printVector(-1,v,"v");
-		printVector(-1,u,"u");
+		//printVector(-1,v,"v");
+		//printVector(-1,u,"u");
 	
 
 		tempDouble = alpha*(-1.0);
@@ -111,8 +111,8 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble = 1/beta;
 		cublasDscal(handle, u.height,&tempDouble,u.elements,1);
 		cuBLASCheck(__LINE__); 
-		printVector(-1,u,"u");
-		printVector(-1,v,"v");
+		//printVector(-1,u,"u");
+		//printVector(-1,v,"v");
 		// v = A' * u - beta * v;
 		tempDouble = (-1.0)*beta;
 		tempDouble2 = 1.0;
@@ -126,7 +126,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble = 1/alpha;
 		cublasDscal(handle, v.height,&tempDouble,v.elements,1);
 		cuBLASCheck(__LINE__); 
-		printVector(-1,v,"v");
+		//printVector(-1,v,"v");
 
 		//next orthogonal transformation
 		rho = sqrt(pow (rho_tag, 2.0) + pow (beta, 2.0));
@@ -136,16 +136,16 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		rho_tag = (-1) * c * alpha;
 		phi = c * phi_tag;
 		phi_tag = s * phi_tag;
-		printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
-		printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
+		//printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
+		//printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
 		//updating x,w
 		//x =  (phi / rho) * w + x;             (in cublas : x is y, w is x)
-		printVector(i, w,"w");
+		//printVector(i, w,"w");
 
 		tempDouble = phi / rho;
 		cublasDaxpy(handle,w.height,&tempDouble,w.elements, 1,x.elements, 1);
 		cuBLASCheck(__LINE__); 
-		printVector(i, x,"x");
+		//printVector(i, x,"x");
 		//	w = v - (theta / rho) * w ;
 		tempDouble = (-1.0) * (theta / rho);
 		cudaMemcpy (tempVector.elements, v.elements, v.height*sizeof(double), cudaMemcpyDeviceToDevice);
@@ -154,7 +154,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cudaMemcpy (w.elements, tempVector.elements, tempVector.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		//printVector(i, w,"w");
 		//check for convergence
-		printVector(i, b,"b");
+		//printVector(i, b,"b");
 		//residual = norm(A*x - b);
 		cudaMemcpy (tempVector.elements, b.elements, tempVector.height*sizeof(double), cudaMemcpyDeviceToDevice);
 		//Ax - b (result in tempVector)
@@ -162,7 +162,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble2 = 1.0;
 		cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, x.elements,1,&tempDouble, tempVector.elements, 1);
 		cuBLASCheck(__LINE__); 
-		printVector(-1, tempVector,"result");
+		//printVector(-1, tempVector,"result");
 		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
 		cuBLASCheck(__LINE__); 
 		improvment = prev_err-curr_err;
