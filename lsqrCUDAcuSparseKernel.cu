@@ -8,7 +8,7 @@
 
 __global__ void sqaure_vector(double *vector, const int size);
 __global__ void norm2(const double *in_data, double *result, int size);
-__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);
+__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);  
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
 __global__ void matrix_vector_multiplication(const int n_row, const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
 
@@ -156,8 +156,6 @@ __global__ void scalar_vector(double *in_data, const double scalar, const int si
     }
     __syncthreads();
 }
-
-
 /*
 <<<<<<<<<<-------------------- END MULTIPLICATION SCALAR ----------------------------->>>>>>>>>>>>>>>>>
 */
@@ -210,7 +208,42 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
+
     double beta = getNorm2(b);
+    printf("beta: %lf\n", beta);
+
+    return b; 
+}
+
+
+
+CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
+    CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
+    GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
+
+    GPUMatrix A_gpu = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
+    
+    /* upload Matrix, vector */
+    matrix_upload_cuSparse(A, A_gpu);
+    matrix_upload(b, b_gpu);
+
+    resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
+
+    //printVector(b.height * b.width, resultGPU, "add vector");
+
+    /* Download result */
+    matrix_download(resultGPU, resultCPU);
+
+    /* free GPU memory */
+    cudaFree(resultGPU.elements);
+    cudaFree(A_gpu.elements);
+    cudaFree(b_gpu.elements);
+
+    return resultCPU;
+}
+
+
 
 
 
@@ -257,36 +290,3 @@ for i = 1:it_max
     end
 end
 */
-
-
-
-    return x; 
-}
-
-
-
-CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
-    CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
-    GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
-
-    GPUMatrix A_gpu = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
-    GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
-    
-    /* upload Matrix, vector */
-    matrix_upload_cuSparse(A, A_gpu);
-    matrix_upload(b, b_gpu);
-
-    resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
-
-    //printVector(b.height * b.width, resultGPU, "add vector");
-
-    /* Download result */
-    matrix_download(resultGPU, resultCPU);
-
-    /* free GPU memory */
-    cudaFree(resultGPU.elements);
-    cudaFree(A_gpu.elements);
-    cudaFree(b_gpu.elements);
-
-    return resultCPU;
-}
