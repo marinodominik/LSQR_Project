@@ -18,8 +18,8 @@ int main(int argc, char ** argv) {
         std::cout << "Second Argument is the PATH of Vector b" << std::endl;
         std::cout << "using TEST-MATRIX, TEST-VECTOR and TEST-LAMBDA from data-folder\n" << std::endl;
 
-        pathMatrixA = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/matrix1000.txt";
-        pathVector_b = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/vector1000.txt";
+        pathMatrixA = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/matrix3000.txt";
+        pathVector_b = "/gris/gris-f/homelv/dmarino/PMPP_Project/Data/vector3000.txt";
         lambda = 0;
 
         /* TODO: 

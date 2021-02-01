@@ -6,11 +6,11 @@
 
 #define BLOCK_SIZE 32            //max threads in a block
 
-__global__ void sqaure_vector(const double *vector, double *result, const int size);
-__global__ void norm2(const double *in_data, double *result, int elementSize);
-__global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
-__global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
-__global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
+__global__ void sqaure_vector(double *vector, const int size);
+__global__ void norm2(const double *in_data, double *result, int size);
+__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);
+__global__ void scalar_vector(double *in_data, const double scalar, const int size);
+__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
 
 
 
@@ -22,56 +22,30 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { /
 
 
 
-__global__ void sqaure_vector(const double *vector, double *result, const int size) {
+/*
+<<<<<<<<<<-------------------- NORM ----------------------------->>>>>>>>>>>>>>
+*/
+
+__global__ void sqaure_vector(double *vector, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(i >= size) { 
         return;
     } else {
-        result[i] = vector[i] * vector[i];
-
-
+        vector[i] = vector[i] * vector[i];
     }
 
     __syncthreads();
 }
 
 
-
-double getNorm2(const GPUMatrix denseVector) {
-    GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
-    int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
-    
-    double *result;
-    cudaMalloc(&result, grids * sizeof(double));
-    
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
-    
-    sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result,denseVector.height);
-    
-    double *values = new double[grids]; 
-    cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
-    
-    double norm = 0.0;
-    for (int i= 0; i< grids; i++) {
-        norm += values[i];
-    }
-    matrix_free_gpu(tmp);
-    cudaFree(result);
-    delete[] values;
-    return sqrt(norm);
-}
-
-
-
-__global__ void norm2(const double *in_data, double *result,int elementSize) {
+__global__ void norm2(const double *in_data, double *result,int size) {
     extern __shared__ double sdata[];
 
     unsigned int tid = threadIdx.x;
     unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
-    if(tid < elementSize){
+
+    if(tid < size){
         sdata[tid] = in_data[i];        //load global data in sh_memory
     }else{
         sdata[tid] = 0; 
@@ -79,9 +53,7 @@ __global__ void norm2(const double *in_data, double *result,int elementSize) {
     __syncthreads();
 
     for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-
         if(tid < s) {
-            if(tid==0 || tid ==1 || i==1 ||i==0) printf("in kernel: i: %d tid: %d sdata tid: %lf sdata tid+s: %lf \n",i,tid,sdata[tid],sdata[tid + s]);
             sdata[tid] += sdata[tid + s];
         }
         __syncthreads();
@@ -94,61 +66,109 @@ __global__ void norm2(const double *in_data, double *result,int elementSize) {
 }
 
 
+double getNorm2(const GPUMatrix denseVector) {
+    int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
+    
+    double *result;
+    cudaMalloc(&result, grids * sizeof(double));
+    
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
+    
+    sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, denseVector.height * denseVector.width); 
+    norm2<<<grids, dimBlock, sh_memory_size>>>(denseVector.elements, result, denseVector.height);
+    
+    double *values = new double[grids]; 
+    cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
+    
+    double norm = 0.0;
+    for (int i= 0; i< grids; i++) {
+        norm += values[i];
+    }
+
+    cudaFree(result);
+    delete[] values;
+    return sqrt(norm);
+}
 
 
-GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
-    GPUMatrix result = matrix_alloc_gpu(denseA.height, denseA.width);
+/*
+<<<<<<<<<<-------------------- END NORM ----------------------------->>>>>>>>>>>>>>>>>
+*/
 
+
+
+
+
+/*
+<<<<<<<<<<-------------------- ADDITION AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
+*/
+
+void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, const bool operation) {
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseA.height);
 
-    return result;
+    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
 }
 
 
 
-__global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size) {
+__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     //check if index out of range of vector
     if(i >= size) return;
 
     if(operation == true) {
-        c[i] = a[i] + b[i];
+        a[i] = a[i] + b[i];
 
     } else {
-        c[i] = a[i] - b[i];
+        a[i] = a[i] - b[i];
     }
     __syncthreads();
 }
 
 
+/*
+<<<<<<<<<<-------------------- END ADDITON AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
+*/
 
-GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
+
+
+/*
+<<<<<<<<<<-------------------- MULTIPLY SCALAR ----------------------------->>>>>>>>>>>>>>>>>
+*/
+
+void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    scalar_vector<<<grids, dimBlock>>>(vector.elements, result.elements, scalar, vector.height * vector.width);
-    
-    return result;
+
+    scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
 }
 
 
-__global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size) {
+__global__ void scalar_vector(double *in_data, const double scalar, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (i < size) {
-        out_data[i] = scalar * in_data[i];
+        in_data[i] = scalar * in_data[i];
     }
     __syncthreads();
 }
 
 
+/*
+<<<<<<<<<<-------------------- END MULTIPLICATION SCALAR ----------------------------->>>>>>>>>>>>>>>>>
+*/
 
 
-//shared memory
+
+
+/*
+<<<<<<<<<<-------------------- CSR MATRIX MULTIPLY WITH DENSE VECTOR ----------------------------->>>>>>>>>>>>>>>>>
+*/
+
 __global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
     unsigned int row = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -157,7 +177,7 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
         const int row_end = rowPtr[row + 1];
 
         double sum = 0.0;
-        for (int idx = row_start; idx < row_end; idx ++) {
+        for (int idx = row_start; idx < row_end; idx++) {
             int col = colIdx[idx];
             sum += elements[idx] * x[col];
         }
@@ -172,6 +192,7 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     //int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
@@ -180,12 +201,66 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 }
 
 
+/*
+<<<<<<<<<<-------------------- END MATRIX VECTOR MULTIPLICATION ----------------------------->>>>>>>>>>>>>>>>>
+*/
+
+
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix result = matrix_alloc_gpu(b.height, b.width);
-    result = get_csr_matrix_vector_multiplication(A, b);
-    return result; 
+    GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
+    double beta = getNorm2(b);
+
+
+
+/*
+    beta = norm(b);
+u = b/beta;
+v = A'*u;
+alpha = norm(v);
+v = v/alpha;
+w = v;
+x = 0;
+phi_hat = beta;
+rho_hat = alpha;
+% (2) iterate
+it_max = 10;
+epsilon = 10^-3;
+history = zeros(length(b),0);
+history(:,end+1) = x;
+for i = 1:it_max
+    % (3) bidiagonalization
+    u = A * v - alpha * u;
+    beta = norm(u);
+    u = u / beta;
+    v = A' * u - beta * v;
+    alpha = norm(v);
+    v = v / alpha;
+    % (4) orthogonal transformation
+    rho = sqrt(rho_hat^2 + beta^2);
+    c = rho_hat / rho;
+    s = beta / rho;
+    theta = s * alpha;
+    rho_hat = -c * alpha;
+    phi = c * phi_hat;
+    phi_hat = s * phi_hat;
+    % (5) update x, w
+    x = x + (phi / rho) * w;
+    w = v - (theta / rho) * w;
+    history(:,end+1) = x;
+    residual = norm(A*x - b);
+    if(residual < epsilon)
+        disp(['terminated after ',num2str(i),' iterations'])
+        disp(['final residual: ',num2str(residual)])
+        return
+    end
+end
+*/
+
+
+
+    return x; 
 }
 
 
