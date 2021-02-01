@@ -4,15 +4,13 @@ CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
     cusparseHandle_t handle;
     cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
-    GPUMatrix u = matrix_alloc_gpu(b.height,b.width);
-    GPUMatrix v = matrix_alloc_gpu(b.height,b.width);
-    GPUMatrix w = matrix_alloc_gpu(b.height,b.width);
-    GPUMatrix x = matrix_alloc_gpu(b.height,b.width);
-    GPUMatrix GPUb = matrix_alloc_gpu(b.height,b.width);
-    GPUMatrix tempVector = matrix_alloc_gpu(b.height,b.width);
+    GPUMatrix u,v,w,x,GPUb,tempVector;
+    initGPUVectors(b,u,v,w,x,GPUb,tempVector);
     cuSPARSECheck(__LINE__);
     matrix_upload(b,GPUb);
     CPUMatrix res = cusparseLSQR_aux(A,GPUb,u,v,w,x,tempVector,ebs);
+    cleanGPUVectors(u,v,w,x,GPUb,tempVector);
+
     return res; 
 }
 
@@ -27,7 +25,6 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     cusparseSpMatDescr_t spMatrixA;
     cusparseDnVecDescr_t u,v,x,tempDense;
     GPUMatrix GPUA =  matrix_alloc_sparse_gpu(A.height,A.width,A.elementSize,A.rowSize,A.columnSize);
-    GPUMatrix tempPrint =  matrix_alloc_gpu(VECb.height,VECb.width);
     matrix_upload_cuSparse(A,GPUA);
     cuSPARSECheck(__LINE__);
     cusparseCreateCsr(&spMatrixA,GPUA.height,GPUA.width,GPUA.elementSize,GPUA.csrRow,GPUA.csrCol,GPUA.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
@@ -68,7 +65,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     //w = v;
     cudaMemcpy (VECw.elements,VECv.elements, VECv.height*sizeof(double), cudaMemcpyDeviceToDevice);
     cuSPARSECheck(__LINE__);
-    
+
     phi_tag = beta; rho_tag = alpha;
 	int i = 0;
 	while(true){
@@ -86,7 +83,6 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         multiply_scalar_vector(VECu,1/beta);
         cuSPARSECheck(__LINE__);
         //printDenseVector(u,"u",tempPrint);
-
         // v = A' * u - beta * v;
         tempDouble = 1; tempDouble2 = (-1)*beta;
         cusparseSpMV(handle,CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
@@ -96,6 +92,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cuSPARSECheck(__LINE__);
         //v = v/alpha;
         multiply_scalar_vector(VECv,1/alpha);
+
         cuSPARSECheck(__LINE__);
        // printDenseVector(v,"v",tempPrint);
 		//next orthogonal transformation
@@ -124,7 +121,6 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cuSPARSECheck(__LINE__);
         //printDenseVector(w,"w",tempVector);
         //printDenseVector(b,"b",tempPrint);
-
         //check for convergence
         tempDouble = 1; tempDouble2 = (-1);
         cudaMemcpy (tempVector.elements,VECb.elements, VECb.height*sizeof(double), cudaMemcpyDeviceToDevice);
@@ -134,6 +130,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         //residual = norm(A*x - b);
         //Ax - b (result in tempDense2)
         curr_err = getNorm2(tempVector);
+
         //printDenseVector(tempDense2,"result",tempPrint);
         cuSPARSECheck(__LINE__);
         improvment = prev_err-curr_err;
@@ -154,10 +151,25 @@ void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A,cusparseDnVe
     cusparseDestroyDnVec(u);
     cusparseDestroyDnVec(v);
     cusparseDestroyDnVec(x);
-
     cusparseDestroyDnVec(tempVector);
     cusparseDestroy(handle);
     cuSPARSECheck(__LINE__);
+}
+void initGPUVectors(const CPUMatrix &b, GPUMatrix &u,GPUMatrix &v, GPUMatrix& x, GPUMatrix &w, GPUMatrix &GPUb, GPUMatrix &tempVector){
+    u = matrix_alloc_gpu(b.height,b.width);
+    v = matrix_alloc_gpu(b.height,b.width);
+    w = matrix_alloc_gpu(b.height,b.width);
+    x = matrix_alloc_gpu(b.height,b.width);
+    GPUb = matrix_alloc_gpu(b.height,b.width);
+    tempVector = matrix_alloc_gpu(b.height,b.width);
+}
+void cleanGPUVectors(GPUMatrix& u,GPUMatrix &v, GPUMatrix &x, GPUMatrix &w, GPUMatrix &GPUb, GPUMatrix &tempVector){
+    matrix_free_gpu(u);
+    matrix_free_gpu(v);
+    matrix_free_gpu(w);
+    matrix_free_gpu(x);
+    matrix_free_gpu(GPUb);
+    matrix_free_gpu(tempVector);
 }
 
 

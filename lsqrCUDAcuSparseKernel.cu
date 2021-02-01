@@ -70,6 +70,10 @@ double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
 
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
+
+    double *result;
+    cudaMalloc(&result, grids * sizeof(double));
+    
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
@@ -78,10 +82,11 @@ double getNorm2(const GPUMatrix denseVector) {
     
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
     norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result, tmp.height * tmp.width);
+
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
-    
+
     double norm = 0.0;
     for (int i= 0; i< grids; i++) {
         norm += values[i];
@@ -208,8 +213,13 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 
+<<<<<<< HEAD
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs, const int max_iters) {
     cusparseHandle_t handle;
+=======
+GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+   /* cusparseHandle_t handle;
+>>>>>>> 364bf7716e8d001ecf30bc8ed6ea3fbc89b8f910
     cusparseCreate(&handle);
     cuSPARSECheck(__LINE__);
     size_t tempInt;
@@ -236,7 +246,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     cudaMemcpy (u.elements, b.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
     GPUMatrix v = matrix_alloc_gpu(b.height, b.width);
 
-    /* INIZALIZATION PART */
+    /* INIZALIZATION PART 
     //beta = norm(b);
     double beta = getNorm2(u);
 
@@ -255,6 +265,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     //w = v;
     cudaMemcpy (w.elements, v.elements, b.height*sizeof(double), cudaMemcpyDeviceToDevice);
 
+<<<<<<< HEAD
     //inizialize phi_hat and rho_hat
     double phi_hat = beta;
     double rho_hat = alpha;
@@ -267,6 +278,9 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     }
 
     return x; 
+=======
+    return b; */
+>>>>>>> 364bf7716e8d001ecf30bc8ed6ea3fbc89b8f910
 }
 
 
