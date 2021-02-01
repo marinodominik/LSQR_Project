@@ -7,7 +7,7 @@
 #define BLOCK_SIZE 32            //max threads in a block
 
 __global__ void sqaure_vector(const double *vector, double *result, const int size);
-__global__ void norm2(const double *in_data, double *result);
+__global__ void norm2(const double *in_data, double *result, int elementSize);
 __global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
 __global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
 __global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
@@ -29,6 +29,8 @@ __global__ void sqaure_vector(const double *vector, double *result, const int si
         return;
     } else {
         result[i] = vector[i] * vector[i];
+
+
     }
 
     __syncthreads();
@@ -38,17 +40,16 @@ __global__ void sqaure_vector(const double *vector, double *result, const int si
 
 double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
-
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
     
-    double *result = new double[grids];
+    double *result;
     cudaMalloc(&result, grids * sizeof(double));
     
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     
     sqaure_vector<<<grids, dimBlock>>>(denseVector.elements, tmp.elements, tmp.height * tmp.width); 
-    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result);
+    norm2<<<grids, dimBlock, sh_memory_size>>>(tmp.elements, result,denseVector.height);
     
     double *values = new double[grids]; 
     cudaMemcpy(values, result, grids * sizeof(double), cudaMemcpyDeviceToHost);
@@ -57,23 +58,30 @@ double getNorm2(const GPUMatrix denseVector) {
     for (int i= 0; i< grids; i++) {
         norm += values[i];
     }
-
+    matrix_free_gpu(tmp);
+    cudaFree(result);
+    delete[] values;
     return sqrt(norm);
 }
 
 
 
-__global__ void norm2(const double *in_data, double *result) {
+__global__ void norm2(const double *in_data, double *result,int elementSize) {
     extern __shared__ double sdata[];
 
     unsigned int tid = threadIdx.x;
     unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
-
-    sdata[tid] = in_data[i];        //load global data in sh_memory
+    if(tid < elementSize){
+        sdata[tid] = in_data[i];        //load global data in sh_memory
+    }else{
+        sdata[tid] = 0; 
+    }
     __syncthreads();
 
     for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+
         if(tid < s) {
+            if(tid==0 || tid ==1 || i==1 ||i==0) printf("in kernel: i: %d tid: %d sdata tid: %lf sdata tid+s: %lf \n",i,tid,sdata[tid],sdata[tid + s]);
             sdata[tid] += sdata[tid + s];
         }
         __syncthreads();

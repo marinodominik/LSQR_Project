@@ -28,15 +28,15 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
 
     CPUMatrix sparseMatrixA = read_matrix_in_csr(pathMatrixA);
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH cuBLAS-LIBARY ----------------------- >>>> */
-    //std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
-    //CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b,ebs);
-    //printTruncatedVector(cuBLASResult);
+    std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
+    CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b,ebs);
+    printTruncatedVector(cuBLASResult);
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
     std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
-    //CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
-    //printTruncatedVector(cuSPARSEResult);
+    CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
+    printTruncatedVector(cuSPARSEResult);
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
