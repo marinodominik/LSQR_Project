@@ -8,8 +8,8 @@
 
 __global__ void sqaure_vector(const double *vector, double *result, const int size);
 __global__ void norm2(const double *in_data, double *result, int elementSize);
-__global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size);
-__global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size);
+__global__ void add_subtract_vector (double *a, const double *b, const bool operation, const int size);
+__global__ void scalar_vector( double *vector, const double scalar, const int size);
 __global__ void matrix_vector_multiplication(const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
 
 
@@ -81,7 +81,6 @@ __global__ void norm2(const double *in_data, double *result,int elementSize) {
     for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 
         if(tid < s) {
-            if(tid==0 || tid ==1 || i==1 ||i==0) printf("in kernel: i: %d tid: %d sdata tid: %lf sdata tid+s: %lf \n",i,tid,sdata[tid],sdata[tid + s]);
             sdata[tid] += sdata[tid + s];
         }
         __syncthreads();
@@ -96,51 +95,45 @@ __global__ void norm2(const double *in_data, double *result,int elementSize) {
 
 
 
-GPUMatrix get_add_subtract_vector(const GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
-    GPUMatrix result = matrix_alloc_gpu(denseA.height, denseA.width);
-
+void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, bool operation) {
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, result.elements, operation, denseA.width * denseA.height);
-
-    return result;
+    add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
 }
 
 
 
-__global__ void add_subtract_vector(const double *a, const double *b, double *c, const bool operation, const int size) {
+__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     //check if index out of range of vector
     if(i >= size) return;
 
     if(operation == true) {
-        c[i] = a[i] + b[i];
+        a[i] = a[i] + b[i];
 
     } else {
-        c[i] = a[i] - b[i];
+        a[i] = a[i] - b[i];
     }
     __syncthreads();
 }
 
 
 
-GPUMatrix multiply_scalar_vector(const GPUMatrix vector, const double scalar) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
+void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
 
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    scalar_vector<<<grids, dimBlock>>>(vector.elements, result.elements, scalar, vector.height * vector.width);
+    scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
     
-    return result;
 }
 
 
-__global__ void scalar_vector(const double *in_data, double *out_data, const double scalar, const int size) {
+__global__ void scalar_vector(double *vector, const double scalar, const int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (i < size) {
-        out_data[i] = scalar * in_data[i];
+        vector[i] = scalar * vector[i];
     }
     __syncthreads();
 }
@@ -161,7 +154,6 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *val
             int col = colIdx[idx];
             sum += val[idx] * x[col];
         }
-        printf("sum: %lf\n", sum);
         result[row] = sum;
     }
     __syncthreads();

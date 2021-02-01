@@ -28,6 +28,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     cusparseSpMatDescr_t spMatrixA;
     cusparseDnVecDescr_t b,u,v,w,x,tempDense,tempDense2;
     GPUMatrix GPUA =  matrix_alloc_sparse_gpu(A.height,A.width,A.elementSize,A.rowSize,A.columnSize);
+    GPUMatrix tempPrint =  matrix_alloc_gpu(VECb.height,VECb.width);
     matrix_upload_cuSparse(A,GPUA);
     cuSPARSECheck(__LINE__);
     cusparseCreateCsr(&spMatrixA,GPUA.height,GPUA.width,GPUA.elementSize,GPUA.csrRow,GPUA.csrCol,GPUA.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
@@ -39,16 +40,16 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     cusparseCreateDnVec(&x,VECb.height,VECx.elements,CUDA_R_64F);
     cusparseCreateDnVec(&tempDense,VECb.height,tempVector.elements,CUDA_R_64F);
     cusparseCreateDnVec(&tempDense2,VECb.height,tempVector2.elements,CUDA_R_64F);
+
     cuSPARSECheck(__LINE__);
 	//init stage
     //beta = norm(b)
-    beta = normalVectorNorm(b,tempVector);
+    beta = getNorm2(VECb);
     //u = b/beta
-    cusparseDnVecGetValues(b,(void**)&tempVector.elements);   
-	cudaMemcpy (VECu.elements,tempVector.elements, VECu.height*sizeof(double), cudaMemcpyDeviceToDevice);
-    scaleNormalvector(u,1/beta,tempVector);
+    cudaMemcpy (VECu.elements,VECb.elements, VECu.height*sizeof(double), cudaMemcpyDeviceToDevice);
+    multiply_scalar_vector(VECu,1/beta);
     cuSPARSECheck(__LINE__);
-    printDenseVector(u,"u",tempVector);
+    printDenseVector(u,"u",tempPrint);
     cuSPARSECheck(__LINE__);
    // printSparseMatrix(spMatrixA,"A",tempVector);
     cuSPARSECheck(__LINE__);
@@ -59,50 +60,57 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     cudaMalloc(&buffer, tempInt);
     cusparseSpMV(handle, CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
     cuSPARSECheck(__LINE__);
-
+    cudaFree(buffer);
     //alpha = norm(v)
-    alpha = normalVectorNorm(v,tempVector);
+    alpha = getNorm2(VECv);
     cuSPARSECheck(__LINE__);
 
     //v = v/alpha;
-    scaleNormalvector(v,1/alpha,tempVector);
+    multiply_scalar_vector(VECv,1/alpha);
     cuSPARSECheck(__LINE__);
 
-    printDenseVector(v,"v",tempVector);
+    printDenseVector(v,"v",tempPrint);
+    printDenseVector(u,"u",tempPrint);
+
     //w = v;
-    cusparseDnVecGetValues(v,(void**)&tempVector.elements);   
-    cudaMemcpy (VECw.elements,tempVector.elements, VECv.height*sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy (VECw.elements,VECv.elements, VECv.height*sizeof(double), cudaMemcpyDeviceToDevice);
     cuSPARSECheck(__LINE__);
 
-    //printDenseVector(w,"w",tempVector);
+    printDenseVector(w,"w",tempVector);
     
     phi_tag = beta; rho_tag = alpha;
 	int i = 0;
 	while(true){
 		//next bidiagonlization
         // u = A * v - alpha * u;
+        printDenseVector(u,"u",tempPrint);
+        printDenseVector(v,"v",tempPrint);
+
         tempDouble = 1; tempDouble2 = (-1)*alpha;
         cusparseSpMV(handle,CUSPARSE_OPERATION_NON_TRANSPOSE,&tempDouble,spMatrixA,v,&tempDouble2,u,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
         cuSPARSECheck(__LINE__);
+
+        printDenseVector(u,"u",tempPrint);
+        printDenseVector(v,"v",tempPrint);
         //beta = norm(u);
-        beta = normalVectorNorm(u,tempVector);
+        beta = getNorm2(VECu);
         cuSPARSECheck(__LINE__);
         // u = u / beta;
-        scaleNormalvector(u,1/beta,tempVector);
+        multiply_scalar_vector(VECu,1/beta);
         cuSPARSECheck(__LINE__);
-        printDenseVector(u,"u",tempVector);
+        printDenseVector(u,"u",tempPrint);
 
         // v = A' * u - beta * v;
         tempDouble = 1; tempDouble2 = (-1)*beta;
         cusparseSpMV(handle,CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
         cuSPARSECheck(__LINE__);
         //alpha = norm(v)
-        alpha = normalVectorNorm(v,tempVector);
+        alpha = getNorm2(VECv);
         cuSPARSECheck(__LINE__);
         //v = v/alpha;
-        scaleNormalvector(v,1/alpha,tempVector);
+        multiply_scalar_vector(VECv,1/alpha);
         cuSPARSECheck(__LINE__);
-        printDenseVector(v,"v",tempVector);
+        printDenseVector(v,"v",tempPrint);
 		//next orthogonal transformation
 		rho = sqrt(pow (rho_tag, 2.0) + pow (beta, 2.0));
 		c = rho_tag / rho;
@@ -114,21 +122,21 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
 		printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
         //updating x,w
-        printDenseVector(w,"w",tempVector);
-        copyVector(tempDense,w,tempVector);
-        scaleNormalvector(tempDense,phi/rho,tempVector); 
+        printDenseVector(w,"w",tempPrint);
+        cudaMemcpy (tempVector.elements,VECw.elements, VECw.height*sizeof(double), cudaMemcpyDeviceToDevice);
+        multiply_scalar_vector(tempVector,phi/rho); 
         cuSPARSECheck(__LINE__);
         //x = x + (phi / rho) * w ;          
-        vectorAddSub(x,tempDense,true,tempVector);
+        get_add_subtract_vector(VECx,tempVector,true);
         cuSPARSECheck(__LINE__);
-        printDenseVector(x,"x",tempVector);
+        printDenseVector(x,"x",tempPrint);
         //	w = -(theta / rho) * w + v;
-        scaleNormalvector(w,(theta/rho)*(-1),tempVector); 
+        multiply_scalar_vector(VECw,(theta/rho)*(-1)); 
         cuSPARSECheck(__LINE__);
-        vectorAddSub(w,v,true,tempVector);
+        get_add_subtract_vector(VECw,VECv,true);
         cuSPARSECheck(__LINE__);
         //printDenseVector(w,"w",tempVector);
-        printDenseVector(b,"b",tempVector);
+        printDenseVector(b,"b",tempPrint);
 
         //check for convergence
         tempDouble = 1; tempDouble2 = (-1);
@@ -139,13 +147,9 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cuSPARSECheck(__LINE__);
         //residual = norm(A*x - b);
         //Ax - b (result in tempDense2)
-        printDenseVector(tempDense2,"result",tempVector);
-        curr_err = normalVectorNorm(tempDense2,tempVector2);
-        printDenseVector(tempDense2,"result",tempVector);
-
+        curr_err = getNorm2(tempVector2);
+        printDenseVector(tempDense2,"result",tempPrint);
         cuSPARSECheck(__LINE__);
-        printDenseVector(tempDense,"temo",tempVector);
-
         improvment = prev_err-curr_err;
         printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
         if(i==A.height) break;
@@ -176,31 +180,6 @@ void cuSPARSECheck(int line){
 	}
 }
 
-double normalVectorNorm(cusparseDnVecDescr_t src, GPUMatrix temp){
-    cusparseDnVecGetValues(src,(void**)&temp.elements);
-    printVector(-1,temp,"norm");
-    cuSPARSECheck(__LINE__);
-    double res = getNorm2(temp);
-    printf("res:  %lf ", res);
-    return res;
-}
-void scaleNormalvector(cusparseDnVecDescr_t src,double alpha,GPUMatrix temp){
-    cusparseDnVecGetValues(src,(void**)&temp.elements);
-    GPUMatrix res = multiply_scalar_vector(temp,alpha);
-    cusparseDnVecSetValues(src,res.elements);
-}
-void vectorAddSub(cusparseDnVecDescr_t a, cusparseDnVecDescr_t b, bool sign,GPUMatrix temp){  // result overrides to a
-    GPUMatrix temp2 = matrix_alloc_gpu(temp.height,temp.width); 
-    cusparseDnVecGetValues(a,(void**)&temp.elements);
-    cusparseDnVecGetValues(b,(void**)&temp2.elements);   
-    GPUMatrix res = get_add_subtract_vector(temp,temp2,sign);
-    cusparseDnVecSetValues(a,res.elements);
-    matrix_free_gpu(temp2);
-}
-void copyVector(cusparseDnVecDescr_t dst,cusparseDnVecDescr_t src,GPUMatrix temp){
-    cusparseDnVecGetValues(src,(void**)&temp.elements);
-    cusparseDnVecSetValues(dst,temp.elements);
-}
 
 void printDenseVector(cusparseDnVecDescr_t src,const char* name,GPUMatrix temp){
     cusparseDnVecGetValues(src,(void**)&temp.elements);

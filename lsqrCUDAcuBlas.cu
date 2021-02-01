@@ -96,6 +96,10 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 	while(true){
 		//next bidiagonlization
 		// u = A * v - alpha * u;
+		printVector(-1,v,"v");
+		printVector(-1,u,"u");
+	
+
 		tempDouble = alpha*(-1.0);
 		tempDouble2 = 1.0;
 		cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, v.elements,1,&tempDouble, u.elements, 1);
@@ -108,6 +112,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cublasDscal(handle, u.height,&tempDouble,u.elements,1);
 		cuBLASCheck(__LINE__); 
 		printVector(-1,u,"u");
+		printVector(-1,v,"v");
 		// v = A' * u - beta * v;
 		tempDouble = (-1.0)*beta;
 		tempDouble2 = 1.0;

@@ -19,8 +19,8 @@ void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A);
 
 
 void cuSPARSECheck(int line);
-double normalVectorNorm(cusparseDnVecDescr_t src, GPUMatrix temp);
-void scaleNormalvector(cusparseDnVecDescr_t src,double alpha,GPUMatrix temp);
+double normalVectorNorm(GPUMatrix src);
+void scaleNormalvector(GPUMatrix src, double scale);
 void vectorAddSub(cusparseDnVecDescr_t a, cusparseDnVecDescr_t b, bool sign,GPUMatrix temp);
 void copyVector(cusparseDnVecDescr_t dst,cusparseDnVecDescr_t src,GPUMatrix temp);
 void printDenseVector(cusparseDnVecDescr_t src,const char* name,GPUMatrix temp);
