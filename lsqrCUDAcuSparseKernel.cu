@@ -227,6 +227,8 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
 
     cuSPARSECheck(__LINE__);
     
+
+    //TODO
     cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
                                   A.elements, A.csrRow, A.csrCol, CUDA_R_64F, );
     cudaMalloc(&buffer, tempInt);
@@ -267,13 +269,11 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
 
     // LOOP PART
     for (int i = 0; i < max_iters, i++ ) {
-
+        //TODO
 
     }
 
     return x; 
-    return b; 
-
 }
 
 

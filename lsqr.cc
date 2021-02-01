@@ -43,7 +43,7 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, double lambda) {
     std::cout << "Starting LSQR using kernels\n" << std::endl;
     CPUMatrix resultKernel = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
     resultKernel = sparseLSQR_with_kernels(sparseMatrixA, cpuVector_b, lambda, ebs);
-    save_file("multiplication.txt", resultKernel.elements, resultKernel.height, resultKernel.width);
+    save_file("multiplication.txt", resultKernel.elements, resultKernel.height, resultKernel.width, 1000);
     
     // Testing
     //compare_lsqr(cpuMatrixA, cpuVectorb, cpuVectorb, lambda, ebs);
