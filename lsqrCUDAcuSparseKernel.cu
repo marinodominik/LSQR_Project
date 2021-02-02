@@ -10,8 +10,8 @@ __global__ void sqaure_vector(const double *vector, double *tmp, const int size)
 __global__ void norm2(const double *in_data, double *result, int size);
 __global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);  
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
-__global__ void matrix_vector_multiplication(const int n_row, const GPUMatrix &A_sparse, const GPUMatrix &vector_dense, GPUMatrix result);
-
+__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
+__global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
 
 
 inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { //numerator = zähler, denumerator = nenner
@@ -193,13 +193,30 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
     __syncthreads();
 }
 
+__global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+    const int unsigned int block_row_begin = 0;
+}
+
+
+GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix matrix, const GPUMatrix vector) {
+    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
+
+    int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
+
+    matrix_vector_multiplication_sh<<<grids, dimBlock, sh_memory_size>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
+
+    return result
+}
+
+
 
 GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
     GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
 
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    //int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
     matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
 
     return result;
