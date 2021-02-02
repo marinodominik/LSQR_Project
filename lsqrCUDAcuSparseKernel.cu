@@ -224,14 +224,13 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     cudaMemcpy (A_transpose.elements, A.elements, A.elementSize * sizeof(double), cudaMemcpyDeviceToDevice);
     cudaMemcpy (A_transpose.csrRow, A.csrRow, A.rowSize * sizeof(int), cudaMemcpyDeviceToDevice);
     cudaMemcpy (A_transpose.csrCol, A.csrCol, A.columnSize * sizeof(int), cudaMemcpyDeviceToDevice);
-
-    cuSPARSECheck(__LINE__);
     
 
     //TODO
+    cuSPARSECheck(__LINE__);
+    cudaMalloc(&buffer, tempInt);
     cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
                                   A.elements, A.csrRow, A.csrCol, CUDA_R_64F, );
-    cudaMalloc(&buffer, tempInt);
     cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize, 
                        A.elements, A.csrRow, A.csrCol, CUDA_R_64F, , CUSPARSE_INDEX_BASE_ZERO, cusparseCsr2CscAlg_t, );
     cuSPARSECheck(__LINE__);
