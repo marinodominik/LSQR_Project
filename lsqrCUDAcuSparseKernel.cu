@@ -236,22 +236,13 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     cuSPARSECheck(__LINE__);
     size_t tempInt;
     double *buffer;
-
     GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
-    cudaMemcpy (A_transpose.elements, A.elements, A.elementSize * sizeof(double), cudaMemcpyDeviceToDevice);
-    cudaMemcpy (A_transpose.csrRow, A.csrRow, A.rowSize * sizeof(int), cudaMemcpyDeviceToDevice);
-    cudaMemcpy (A_transpose.csrCol, A.csrCol, A.columnSize * sizeof(int), cudaMemcpyDeviceToDevice);
-    
-
     //TODO
     cuSPARSECheck(__LINE__);
+    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements,A_transpose.csrCol,A_transpose.csrRow,CUDA_R_64F,CUSPARSE_ACTION_NUMERIC,CUSPARSE_INDEX_BASE_ZERO ,CUSPARSE_CSR2CSC_ALG1,&tempInt);
     cudaMalloc(&buffer, tempInt);
-    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
-                                  A.elements, A.csrRow, A.csrCol, CUDA_R_64F, );
-    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize, 
-                       A.elements, A.csrRow, A.csrCol, CUDA_R_64F, , CUSPARSE_INDEX_BASE_ZERO, cusparseCsr2CscAlg_t, );
+    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements,A_transpose.csrCol,A_transpose.cs,CUDA_R_64F,CUSPARSE_ACTION_NUMERIC,CUSPARSE_INDEX_BASE_ZERO ,CUSPARSE_CSR2CSC_ALG1,&buffer);
     cuSPARSECheck(__LINE__);
-
     
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
     GPUMatrix w = matrix_alloc_gpu(b.height, b.width);
