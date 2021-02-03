@@ -134,17 +134,10 @@ double getNorm2(const GPUMatrix denseVector) {
 */
 
 void get_add_subtract_vector(GPUMatrix denseA, GPUMatrix denseB, bool operation) {
-    printf("get add\n");
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
-    kernelCheck(__LINE__);
-    printf("%d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    kernelCheck(__LINE__);
-    printf("before");
-    kernelCheck(__LINE__);
+
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
-    kernelCheck(__LINE__);
-    printf("after");
 }
 
 
@@ -256,12 +249,121 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+    printf("--------------INIZIALIZATION---------------------------\n");
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
-    printValuesKernel(A, "A");
-
+    GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix w = matrix_alloc_gpu(b.height, b.width);
     GPUMatrix A_transpose = transpose_matrix(A);
 
+    printValuesKernel(A, "A");
     printValuesKernel(A_transpose, "A_transpose");
+    
+
+    //<<<<<< -------------- INIZIALIZATION PART -------------------->>>>>>>>>>>>>
+    //beta = norm(b);
+    double beta = getNorm2(b);
+    printf("beta: %lf\n", beta);
+
+    //u = b/beta;
+    cudaMemcpy(u.elements, b.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+    multiply_scalar_vector(u, 1 / beta);
+    printVectorKernel(0, u, "u: ");
+
+    //v = A'*u;
+    GPUMatrix v = get_csr_matrix_vector_multiplication(A_transpose, u);
+
+    //alpha = norm(v);
+    double alpha = getNorm2(v);
+    printf("alpha: %lf\n", alpha);
+
+    //v = v/alpha;
+    multiply_scalar_vector(v, 1 / alpha);
+    printVectorKernel(2, v, "v ");
+
+
+    //phi_hat = beta;
+    double phi_hat = beta;
+    printf("phi_hat: %lf\n", phi_hat);
+
+    //rho_hat = alpha;
+    double rho_hat = alpha;
+    printf("rho_hat: %lf\n", rho_hat);
+
+    //w = v
+    cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+    printVectorKernel(0, w, "w");
+
+
+    printf("----------------------LOOP------------------------\n");
+    GPUMatrix tmp;
+    for (int i = 0; i < 5; i++) {
+        //3a)
+        //u = A * v - alpha * u;
+        tmp = get_csr_matrix_vector_multiplication(A, v);
+        multiply_scalar_vector(u, alpha);
+        get_add_subtract_vector(tmp, u, false);
+        printVectorKernel(0, tmp, "tmp");
+
+        //beta = norm(u);
+        beta = getNorm2(tmp);
+        printf("beta: %lf\n", beta);
+
+        //u = u / beta;
+        cudaMemcpy(u.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        multiply_scalar_vector(u, 1/beta);
+        printVectorKernel(0, u, "u");
+
+
+        //3b)
+        // v = A' * u - beta * v;
+        tmp = get_csr_matrix_vector_multiplication(A_transpose, u);
+        multiply_scalar_vector(v, beta);
+        get_add_subtract_vector(tmp, v, false);
+        printVectorKernel(0, tmp, "tmp");
+
+        //alpha = norm(v);
+        alpha = getNorm2(tmp);
+        printf("alpha: %lf\n", alpha);
+
+        //v = v / alpha;
+        cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        multiply_scalar_vector(v, 1/alpha);
+        printVectorKernel(0, u, "u");
+
+        //rho = sqrt(rho_hat^2 + beta^2);
+        double rho = sqrt(rho_hat * rho_hat + beta * beta);
+        //c = rho_hat / rho;
+        double c = rho_hat / rho;
+        // s = beta / rho;
+        double s = beta / rho;
+        //theta = s * alpha;
+        double theta = s * alpha;
+        //rho_hat = -c * alpha;
+        rho_hat = -c * alpha;
+        //phi = c * phi_hat;
+        double phi = c * phi_hat;
+        //phi_hat = s * phi_hat;
+        phi_hat = s * phi_hat;
+        printf("rho: %lf, c: %lf, s: %lf, theta: %lf, rho_hat: %lf, phi: %lf, phi_hat: %lf\n", rho, c, s, theta, rho_hat, phi, phi_hat);
+
+        //5
+        //x = x + (phi / rho) * w;
+        cudaMemcpy(tmp.elements, w.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        multiply_scalar_vector(tmp, phi / rho);
+        get_add_subtract_vector(x, tmp, true);
+        printVectorKernel(0, x, "x");
+
+        // w = v - (theta / rho) * w;
+        multiply_scalar_vector(w, (theta / rho));
+        cudaMemcpy(tmp.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        get_add_subtract_vector(v, w, false);
+        cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        printVectorKernel(0, w, "w");
+
+        printf("\n\n");
+        
+    }
 
     return x; 
 }
@@ -278,9 +380,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     matrix_upload_cuSparse(A, A_gpu);
     matrix_upload(b, b_gpu);
     
-    printf("hier1\n");
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
-    printf("hier2");
 
     /* Download result */
     matrix_download(resultGPU, resultCPU);
@@ -299,7 +399,7 @@ void printVectorKernel(int iteration,GPUMatrix x, const char* name){
 	CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.height, x.width);
 	matrix_download(x ,tempCPUMatrix);
 	//printf("iteration number: %d\n", iteration);
-	for(int i = 0; i < 9; i++){
+	for(int i = 0; i < tempCPUMatrix.height; i++){
 		printf("%lf ", tempCPUMatrix.elements[i]);
 	}
 	printf("\n");
@@ -311,16 +411,16 @@ void printValuesKernel(GPUMatrix x, const char *name) {
     matrix_download_cuSparse(x ,tempCPUMatrix);
     
 
-    for(int i = 0; i < 9; i++){
+    for(int i = 0; i < x.elementSize; i++){
 		printf("%lf ", tempCPUMatrix.elements[i]);
     }
     printf("\n Row:");
 
-    for(int i = 0; i < 4; i++){
+    for(int i = 0; i < x.rowSize; i++){
 		printf("%d ", tempCPUMatrix.csrRow[i]);
     }
     printf("\n Col:");
-    for(int i = 0; i < 9; i++){
+    for(int i = 0; i < x.columnSize; i++){
 		printf("%d ", tempCPUMatrix.csrCol[i]);
     }
     printf("\n");
