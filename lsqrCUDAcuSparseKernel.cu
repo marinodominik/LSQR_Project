@@ -8,7 +8,7 @@
 
 __global__ void sqaure_vector(const double *vector, double *tmp, const int size);
 __global__ void norm2(const double *in_data, double *result, int size);
-__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);  
+__global__ void add_subtract_vector(double *a, double *b, bool operation, int size);  
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
 __global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
 __global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
@@ -19,6 +19,31 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { /
 	if (numerator % denominator) ++result;
 	return result;
 }
+
+
+GPUMatrix transpose_matrix(GPUMatrix A) {
+    GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    cusparseHandle_t handle;
+    cusparseCreate(&handle);
+
+    size_t tempInt;
+    double *buffer;
+
+    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
+                                  A.elements, A.csrRow, A.csrCol,
+                                  A_transpose.elements, A_transpose.csrCol,A_transpose.csrRow, 
+                                  CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &tempInt);
+
+    cudaMalloc(&buffer, tempInt);
+
+    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,
+                       A.elements, A.csrRow, A.csrCol,
+                       A_transpose.elements, A_transpose.csrRow, A_transpose.csrCol, 
+                       CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, buffer);
+    
+    return A_transpose;
+}
+
 
 
 /*
@@ -108,16 +133,23 @@ double getNorm2(const GPUMatrix denseVector) {
 <<<<<<<<<<-------------------- ADDITION AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
 */
 
-void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, const bool operation) {
+void get_add_subtract_vector(GPUMatrix denseA, GPUMatrix denseB, bool operation) {
+    printf("get add\n");
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
+    kernelCheck(__LINE__);
+    printf("%d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-
+    kernelCheck(__LINE__);
+    printf("before");
+    kernelCheck(__LINE__);
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
+    kernelCheck(__LINE__);
+    printf("after");
 }
 
 
 
-__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size) {
+__global__ void add_subtract_vector(double *a, double *b, bool operation, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     //check if index out of range of vector
@@ -223,41 +255,22 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 */
 
 
-
-/*
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
-    cusparseHandle_t handle;
-    cusparseCreate(&handle);
-    //kernelCheck(__LINE__);
-    size_t tempInt;
-    double *buffer;
-    GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    printValuesKernel(A, "A");
 
-    //kernelCheck(__LINE__);
-    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements,A_transpose.csrCol,A_transpose.csrRow, CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &tempInt);
-    cudaMalloc(&buffer, tempInt);
-    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements, A_transpose.csrCol, A_transpose.csrRow, CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &buffer);
-    //kernelCheck(__LINE__);
+    GPUMatrix A_transpose = transpose_matrix(A);
 
+    printValuesKernel(A_transpose, "A_transpose");
 
     return x; 
-}*/
-
-GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
-
-    //double beta = getNorm2(b);
-    //printf("beta: %lf\n", beta);
-    get_add_subtract_vector(b, b, true);
-
-    return b; 
 }
-
 
 
 CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
     CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
+    GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
+
     GPUMatrix A_gpu = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
     GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
 
@@ -266,7 +279,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     matrix_upload(b, b_gpu);
     
     printf("hier1\n");
-    GPUMatrix resultGPU = lsqr_algrithm(b_gpu, b_gpu, lambda, ebs);
+    resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
     printf("hier2");
 
     /* Download result */
@@ -281,7 +294,39 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
 }
 
 
-/*
+void printVectorKernel(int iteration,GPUMatrix x, const char* name){
+	printf("%s: ",name);
+	CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.height, x.width);
+	matrix_download(x ,tempCPUMatrix);
+	//printf("iteration number: %d\n", iteration);
+	for(int i = 0; i < 9; i++){
+		printf("%lf ", tempCPUMatrix.elements[i]);
+	}
+	printf("\n");
+}
+
+void printValuesKernel(GPUMatrix x, const char *name) {
+    printf("%s: ",name);
+	CPUMatrix tempCPUMatrix = matrix_alloc_sparse_cpu(x.height, x.width, x.elementSize, x.rowSize, x.columnSize);
+    matrix_download_cuSparse(x ,tempCPUMatrix);
+    
+
+    for(int i = 0; i < 9; i++){
+		printf("%lf ", tempCPUMatrix.elements[i]);
+    }
+    printf("\n Row:");
+
+    for(int i = 0; i < 4; i++){
+		printf("%d ", tempCPUMatrix.csrRow[i]);
+    }
+    printf("\n Col:");
+    for(int i = 0; i < 9; i++){
+		printf("%d ", tempCPUMatrix.csrCol[i]);
+    }
+    printf("\n");
+}
+
+
 void kernelCheck(int line){
 	const cudaError_t err = cudaGetLastError();                            
 	if (err != cudaSuccess) {                                              
@@ -290,4 +335,4 @@ void kernelCheck(int line){
             << ": " << err_str << " (" << err << ")" << std::endl;   
             exit(EXIT_FAILURE);                                                                    
 	}
-}*/
+}
