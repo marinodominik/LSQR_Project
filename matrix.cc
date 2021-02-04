@@ -131,9 +131,9 @@ void matrix_upload_cuSparse(const CPUMatrix & src, GPUMatrix & dst) {
 void matrix_download_cuSparse(const GPUMatrix &src, CPUMatrix & dst) {
 	cudaMemcpy(dst.elements, src.elements, dst.elementSize*sizeof(double), cudaMemcpyDeviceToHost);
 
-	//int size_csrCol = src.columnSize * sizeof(int);
-	//cudaMemcpy(dst.csrCol, src.csrCol, size_csrCol, cudaMemcpyDeviceToHost);
+	int size_csrCol = src.columnSize * sizeof(int);
+	cudaMemcpy(dst.csrCol, src.csrCol, size_csrCol, cudaMemcpyDeviceToHost);
 
-	//int size_csrRow = src.rowSize * sizeof(int);
-	//cudaMemcpy(dst.csrRow, src.csrRow, size_csrRow, cudaMemcpyDeviceToHost);
+	int size_csrRow = src.rowSize * sizeof(int);
+	cudaMemcpy(dst.csrRow, src.csrRow, size_csrRow, cudaMemcpyDeviceToHost);
 } 
