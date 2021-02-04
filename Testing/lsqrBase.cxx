@@ -410,16 +410,16 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
   double test3;
   double rtol;
 
-  printf("INIZIALZATION\n");
-  printf("Beta: %lf\n", beta);
-  printf("Alpha: %lf\n", alpha);
-  printf("u: "); 
-  print_matrix_vector_dense_format(u, m);
-  printf("v: ");
-  print_matrix_vector_dense_format(v, n);
+  //printf("INIZIALZATION\n");
+  //printf("Beta: %lf\n", beta);
+  //printf("Alpha: %lf\n", alpha);
+  //printf("u: "); 
+  //print_matrix_vector_dense_format(u, m);
+  //printf("v: ");
+  //print_matrix_vector_dense_format(v, n);
 
-  printf("\n GETTING IN THE LOOP\n");
-
+  //printf("\n GETTING IN THE LOOP\n");
+  int k = 0; 
   //
   //  Main itertation loop
   //
@@ -460,11 +460,11 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         }
      }
 
-    printf("Beta: %lf\n", beta);
-    printf("u: "); 
-    print_matrix_vector_dense_format(u, m);
-    printf("Alpha: %lf\n", alpha);
-    print_matrix_vector_dense_format(v, n);
+    //printf("Beta: %lf\n", beta);
+   // printf("u: "); 
+    //print_matrix_vector_dense_format(u, m);
+    //printf("Alpha: %lf\n", alpha);
+    //print_matrix_vector_dense_format(v, n);
 
     //----------------------------------------------------------------
     //  Use a plane rotation to eliminate the damping parameter.
@@ -495,7 +495,7 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
     double tau    =   sn * phi;
 
 
-    printf("rho: %lf\n", rho);
+    ("rho: %lf\n", rho);
     printf("cs: %lf\n", cs);
     printf("sn: %lf\n", sn);
     printf("theta: %lf\n", theta);
@@ -535,11 +535,13 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         }
       }
 
-      printf("x: ");
-      print_matrix_vector_dense_format(x, m);
-      printf("w: ");
-      print_matrix_vector_dense_format(w, n);
+      //printf("x: ");
+      //print_matrix_vector_dense_format(x, m);
+      //printf("w: ");
+      //print_matrix_vector_dense_format(w, n);
 
+      printf("\n iteration: %d NEXT ITERATION \n",k);
+      k++;
 
     //----------------------------------------------------------------
     //  Monitor the norm of d_k, the update to x.
@@ -677,7 +679,6 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         istop = 0;
         }
       }
-      printf("\n NEXT ITERATION \n");
     } while ( istop == 0); 
 
   //===================================================================

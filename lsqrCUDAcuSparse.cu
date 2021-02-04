@@ -134,7 +134,8 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         //printDenseVector(tempDense2,"result",tempPrint);
         cuSPARSECheck(__LINE__);
         improvment = prev_err-curr_err;
-        printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
+       if(i%500==0) printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
+       i++;
         if(i==A.height) break;
         prev_err = curr_err;
     }

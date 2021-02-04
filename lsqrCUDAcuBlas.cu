@@ -136,8 +136,8 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		rho_tag = (-1) * c * alpha;
 		phi = c * phi_tag;
 		phi_tag = s * phi_tag;
-		//printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
-		//printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
+		printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
+		printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
 		//updating x,w
 		//x =  (phi / rho) * w + x;             (in cublas : x is y, w is x)
 		//printVector(i, w,"w");
@@ -166,7 +166,8 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
 		cuBLASCheck(__LINE__); 
 		improvment = prev_err-curr_err;
-		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
+		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
+		i++;
 		if(i==A.height) break;
 		prev_err = curr_err;
 	}

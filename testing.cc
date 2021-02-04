@@ -16,7 +16,7 @@ void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, double lambda, dou
     solver.SetMatrix(A_2D);
     
     solver.SetEpsilon(ebs);
-    solver.SetMaximumNumberOfIterations(1000);
+    solver.SetMaximumNumberOfIterations(5000);
 
     CPUMatrix solver_result = matrix_alloc_cpu(1, b.height);
 
@@ -77,7 +77,7 @@ bool distance_values(double Xi, double xi, double ebs) {
     /*
         This function checks only the distance/error of the value between the Xi and xi
     */
-    double distance = sqrt(pow(Xi - xi, 2));
+    double distance = sqrt(pow(Xi, 2)-pow(xi, 2));
     
     if (distance <= ebs) {
         return true;
