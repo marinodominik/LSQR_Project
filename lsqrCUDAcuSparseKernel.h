@@ -3,12 +3,14 @@
 #include "matrix.h"
 /*#include "lsqrCUDAcuBlas.h"*/
 #include "math.h"
+#include "float.h"
 
 
 double getNorm2(const GPUMatrix denseVector);
 void get_add_subtract_vector(GPUMatrix denseA, GPUMatrix denseB, bool operation);
 void multiply_scalar_vector(const GPUMatrix vector, const double scalar);
-GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix A_sparse, const GPUMatrix b_dense);
+GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix A_sparse, const GPUMatrix b_dense, GPUMatrix result);
+//GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix A_sparse, const GPUMatrix b_dense, GPUMatrix result);
 
 void kernelCheck(int line);
 void printValuesKernel(GPUMatrix x, const char *name); 

@@ -54,7 +54,7 @@ __global__ void sqaure_vector(const double *vector, double *tmp, const int size)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(i >= size) { 
-        return;
+        tmp[i] = 0;
     } else {
         tmp[i] = vector[i] * vector[i];
     }
@@ -94,6 +94,7 @@ double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
 
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids norm2: %d\n", grids);
 
     double *result;
     cudaMalloc(&result, grids * sizeof(double));
@@ -136,6 +137,7 @@ double getNorm2(const GPUMatrix denseVector) {
 void get_add_subtract_vector(GPUMatrix denseA, GPUMatrix denseB, bool operation) {
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids add-sub: %d\n", grids);
 
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
 }
@@ -171,6 +173,7 @@ __global__ void add_subtract_vector(double *a, double *b, bool operation, int si
 
 void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids scalar: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
 
     scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
@@ -213,33 +216,26 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
     __syncthreads();
 }
 
-__global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+// __global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
     
-}
+// }
 
 
-GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix matrix, const GPUMatrix vector) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
+// GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix matrix, const GPUMatrix vector, GPUMatrix result) {
+//     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+//     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+//     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
 
+//     matrix_vector_multiplication_sh<<<grids, dimBlock, sh_memory_size>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
+// }
+
+
+
+GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector, GPUMatrix result) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
-
-    matrix_vector_multiplication_sh<<<grids, dimBlock, sh_memory_size>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
-
-    return result;
-}
-
-
-
-GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
-
-    int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids multi: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
-
-    return result;
 }
 
 
@@ -249,14 +245,16 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 
 
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+    double prev_err = DBL_MAX;
     printf("--------------INIZIALIZATION---------------------------\n");
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
     GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix v = matrix_alloc_gpu(b.height, b.width);
     GPUMatrix w = matrix_alloc_gpu(b.height, b.width);
     GPUMatrix A_transpose = transpose_matrix(A);
 
-    printValuesKernel(A, "A");
-    printValuesKernel(A_transpose, "A_transpose");
+    //printValuesKernel(A, "A");
+    //printValuesKernel(A_transpose, "A_transpose");
     
 
     //<<<<<< -------------- INIZIALIZATION PART -------------------->>>>>>>>>>>>>
@@ -267,10 +265,10 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
     //u = b/beta;
     cudaMemcpy(u.elements, b.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
     multiply_scalar_vector(u, 1 / beta);
-    printVectorKernel(0, u, "u: ");
+    //printVectorKernel(0, u, "u: ");
 
-    //v = A'*u;
-    GPUMatrix v = get_csr_matrix_vector_multiplication(A_transpose, u);
+    //v = A' * u;
+    get_csr_matrix_vector_multiplication(A_transpose, u, v);
 
     //alpha = norm(v);
     double alpha = getNorm2(v);
@@ -278,58 +276,72 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
 
     //v = v/alpha;
     multiply_scalar_vector(v, 1 / alpha);
-    printVectorKernel(2, v, "v ");
+    //printVectorKernel(2, v, "v ");
 
 
     //phi_hat = beta;
     double phi_hat = beta;
-    printf("phi_hat: %lf\n", phi_hat);
+    //printf("phi_hat: %lf\n", phi_hat);
 
     //rho_hat = alpha;
     double rho_hat = alpha;
-    printf("rho_hat: %lf\n", rho_hat);
+    //printf("rho_hat: %lf\n", rho_hat);
 
     //w = v
     cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
-    printVectorKernel(0, w, "w");
+    //printVectorKernel(0, w, "w");
 
 
     printf("----------------------LOOP------------------------\n");
-    GPUMatrix tmp;
-    for (int i = 0; i < 5; i++) {
+    GPUMatrix tmp = matrix_alloc_gpu(b.height, b.width);
+    for (int i = 0; i < 5000; i++) {
         //3a)
         //u = A * v - alpha * u;
-        tmp = get_csr_matrix_vector_multiplication(A, v);
+        get_csr_matrix_vector_multiplication(A, v, tmp);
+        
+        kernelCheck(__LINE__);
         multiply_scalar_vector(u, alpha);
+        kernelCheck(__LINE__);
         get_add_subtract_vector(tmp, u, false);
-        printVectorKernel(0, tmp, "tmp");
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, tmp, "tmp");
 
         //beta = norm(u);
         beta = getNorm2(tmp);
+        kernelCheck(__LINE__);
         printf("beta: %lf\n", beta);
-
+        
+        
         //u = u / beta;
         cudaMemcpy(u.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
         multiply_scalar_vector(u, 1/beta);
-        printVectorKernel(0, u, "u");
-
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, u, "u");
+    
 
         //3b)
         // v = A' * u - beta * v;
-        tmp = get_csr_matrix_vector_multiplication(A_transpose, u);
+        get_csr_matrix_vector_multiplication(A_transpose, u, tmp);
+        kernelCheck(__LINE__);
         multiply_scalar_vector(v, beta);
+        kernelCheck(__LINE__);
         get_add_subtract_vector(tmp, v, false);
-        printVectorKernel(0, tmp, "tmp");
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, tmp, "tmp");
 
         //alpha = norm(v);
         alpha = getNorm2(tmp);
+        kernelCheck(__LINE__);
         printf("alpha: %lf\n", alpha);
+
 
         //v = v / alpha;
         cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
         multiply_scalar_vector(v, 1/alpha);
-        printVectorKernel(0, u, "u");
-
+        //printVectorKernel(0, u, "u");
+        kernelCheck(__LINE__);
         //rho = sqrt(rho_hat^2 + beta^2);
         double rho = sqrt(rho_hat * rho_hat + beta * beta);
         //c = rho_hat / rho;
@@ -349,22 +361,49 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
         //5
         //x = x + (phi / rho) * w;
         cudaMemcpy(tmp.elements, w.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
         multiply_scalar_vector(tmp, phi / rho);
+        kernelCheck(__LINE__);
         get_add_subtract_vector(x, tmp, true);
-        printVectorKernel(0, x, "x");
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, x, "x");
+        
 
         // w = v - (theta / rho) * w;
         multiply_scalar_vector(w, (theta / rho));
+        kernelCheck(__LINE__);
         cudaMemcpy(tmp.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
         get_add_subtract_vector(v, w, false);
+        kernelCheck(__LINE__);
         cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
         cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
-        printVectorKernel(0, w, "w");
-
-        printf("\n\n");
+        //printVectorKernel(0, w, "w");
+        kernelCheck(__LINE__);
         
+        get_csr_matrix_vector_multiplication(A, x, tmp);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(tmp, b, false);
+        kernelCheck(__LINE__);
+        double curr_err = getNorm2(tmp);
+        kernelCheck(__LINE__);
+        double improvment = prev_err - curr_err;
+        printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
+        prev_err = curr_err;
+        printf("i: %d: --------------------------Next Iteration ---------------------------\n", i);
+        i++;
+
+        if (curr_err <= ebs) break;
     }
 
+
+    matrix_free_gpu(tmp);
+    matrix_free_gpu(u);
+    matrix_free_gpu(v);
+    matrix_free_gpu(w);
+
+    printf("----------------------END KERNEL------------------------\n\n\n");
     return x; 
 }
 
