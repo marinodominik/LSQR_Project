@@ -8,7 +8,7 @@
 
 __global__ void sqaure_vector(const double *vector, double *tmp, const int size);
 __global__ void norm2(const double *in_data, double *result, int size);
-__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size);  
+__global__ void add_subtract_vector(double *a, double *b, bool operation, int size);  
 __global__ void scalar_vector(double *in_data, const double scalar, const int size);
 __global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
 __global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result);
@@ -21,6 +21,31 @@ inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { /
 }
 
 
+GPUMatrix transpose_matrix(GPUMatrix A) {
+    GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    cusparseHandle_t handle;
+    cusparseCreate(&handle);
+
+    size_t tempInt;
+    double *buffer;
+
+    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,
+                                  A.elements, A.csrRow, A.csrCol,
+                                  A_transpose.elements, A_transpose.csrCol,A_transpose.csrRow, 
+                                  CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &tempInt);
+
+    cudaMalloc(&buffer, tempInt);
+
+    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,
+                       A.elements, A.csrRow, A.csrCol,
+                       A_transpose.elements, A_transpose.csrRow, A_transpose.csrCol, 
+                       CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, buffer);
+    
+    return A_transpose;
+}
+
+
+
 /*
 <<<<<<<<<<-------------------- NORM ----------------------------->>>>>>>>>>>>>>
 */
@@ -29,7 +54,7 @@ __global__ void sqaure_vector(const double *vector, double *tmp, const int size)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if(i >= size) { 
-        return;
+        tmp[i] = 0;
     } else {
         tmp[i] = vector[i] * vector[i];
     }
@@ -69,6 +94,7 @@ double getNorm2(const GPUMatrix denseVector) {
     GPUMatrix tmp = matrix_alloc_gpu(denseVector.height, denseVector.width);
 
     int grids = div_up(denseVector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids norm2: %d\n", grids);
 
     double *result;
     cudaMalloc(&result, grids * sizeof(double));
@@ -108,16 +134,17 @@ double getNorm2(const GPUMatrix denseVector) {
 <<<<<<<<<<-------------------- ADDITION AND SUBSTRACTION ----------------------------->>>>>>>>>>>>>>>>>
 */
 
-void get_add_subtract_vector(GPUMatrix denseA, const GPUMatrix denseB, const bool operation) {
+void get_add_subtract_vector(GPUMatrix denseA, GPUMatrix denseB, bool operation) {
     int grids = div_up(denseA.height, BLOCK_SIZE * BLOCK_SIZE);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids add-sub: %d\n", grids);
 
     add_subtract_vector<<<grids, dimBlock>>>(denseA.elements, denseB.elements, operation, denseA.width * denseA.height);
 }
 
 
 
-__global__ void add_subtract_vector(double *a, const double *b, const bool operation, const int size) {
+__global__ void add_subtract_vector(double *a, double *b, bool operation, int size) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     
     //check if index out of range of vector
@@ -146,6 +173,7 @@ __global__ void add_subtract_vector(double *a, const double *b, const bool opera
 
 void multiply_scalar_vector(GPUMatrix vector, const double scalar) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids scalar: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
 
     scalar_vector<<<grids, dimBlock>>>(vector.elements, scalar, vector.height * vector.width);
@@ -188,33 +216,26 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
     __syncthreads();
 }
 
-__global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+// __global__ void matrix_vector_multiplication_sh(const int n_row, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
     
-}
+// }
 
 
-GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix matrix, const GPUMatrix vector) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
+// GPUMatrix get_csr_matrix_vector_multiplication_sh(const GPUMatrix matrix, const GPUMatrix vector, GPUMatrix result) {
+//     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+//     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
+//     int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
 
+//     matrix_vector_multiplication_sh<<<grids, dimBlock, sh_memory_size>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
+// }
+
+
+
+GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector, GPUMatrix result) {
     int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
-    dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
-    int sh_memory_size = BLOCK_SIZE * BLOCK_SIZE * sizeof(double);
-
-    matrix_vector_multiplication_sh<<<grids, dimBlock, sh_memory_size>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
-
-    return result;
-}
-
-
-
-GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPUMatrix vector) {
-    GPUMatrix result = matrix_alloc_gpu(vector.height, vector.width);
-
-    int grids = div_up(vector.height, BLOCK_SIZE * BLOCK_SIZE);
+    printf("grids multi: %d\n", grids);
     dim3 dimBlock(BLOCK_SIZE * BLOCK_SIZE);
     matrix_vector_multiplication<<<grids, dimBlock>>>(matrix.height, matrix.elements, matrix.csrRow, matrix.csrCol, vector.elements, result.elements);
-
-    return result;
 }
 
 
@@ -223,41 +244,174 @@ GPUMatrix get_csr_matrix_vector_multiplication(const GPUMatrix matrix, const GPU
 */
 
 
-
-/*
 GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
+    double prev_err = DBL_MAX;
+    printf("--------------INIZIALIZATION---------------------------\n");
     GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
-    cusparseHandle_t handle;
-    cusparseCreate(&handle);
-    //kernelCheck(__LINE__);
-    size_t tempInt;
-    double *buffer;
-    GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
+    GPUMatrix u = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix v = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix w = matrix_alloc_gpu(b.height, b.width);
+    GPUMatrix A_transpose = transpose_matrix(A);
 
-    //kernelCheck(__LINE__);
-    cusparseCsr2cscEx2_bufferSize(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements,A_transpose.csrCol,A_transpose.csrRow, CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &tempInt);
-    cudaMalloc(&buffer, tempInt);
-    cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,A.elements, A.csrRow, A.csrCol,A_transpose.elements, A_transpose.csrCol, A_transpose.csrRow, CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &buffer);
-    //kernelCheck(__LINE__);
+    //printValuesKernel(A, "A");
+    //printValuesKernel(A_transpose, "A_transpose");
+    
+
+    //<<<<<< -------------- INIZIALIZATION PART -------------------->>>>>>>>>>>>>
+    //beta = norm(b);
+    double beta = getNorm2(b);
+    printf("beta: %lf\n", beta);
+
+    //u = b/beta;
+    cudaMemcpy(u.elements, b.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+    multiply_scalar_vector(u, 1 / beta);
+    //printVectorKernel(0, u, "u: ");
+
+    //v = A' * u;
+    get_csr_matrix_vector_multiplication(A_transpose, u, v);
+
+    //alpha = norm(v);
+    double alpha = getNorm2(v);
+    printf("alpha: %lf\n", alpha);
+
+    //v = v/alpha;
+    multiply_scalar_vector(v, 1 / alpha);
+    //printVectorKernel(2, v, "v ");
 
 
+    //phi_hat = beta;
+    double phi_hat = beta;
+    //printf("phi_hat: %lf\n", phi_hat);
+
+    //rho_hat = alpha;
+    double rho_hat = alpha;
+    //printf("rho_hat: %lf\n", rho_hat);
+
+    //w = v
+    cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+    //printVectorKernel(0, w, "w");
+
+
+    printf("----------------------LOOP------------------------\n");
+    GPUMatrix tmp = matrix_alloc_gpu(b.height, b.width);
+    for (int i = 0; i < 5000; i++) {
+        //3a)
+        //u = A * v - alpha * u;
+        get_csr_matrix_vector_multiplication(A, v, tmp);
+        
+        kernelCheck(__LINE__);
+        multiply_scalar_vector(u, alpha);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(tmp, u, false);
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, tmp, "tmp");
+
+        //beta = norm(u);
+        beta = getNorm2(tmp);
+        kernelCheck(__LINE__);
+        printf("beta: %lf\n", beta);
+        
+        
+        //u = u / beta;
+        cudaMemcpy(u.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
+        multiply_scalar_vector(u, 1/beta);
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, u, "u");
+    
+
+        //3b)
+        // v = A' * u - beta * v;
+        get_csr_matrix_vector_multiplication(A_transpose, u, tmp);
+        kernelCheck(__LINE__);
+        multiply_scalar_vector(v, beta);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(tmp, v, false);
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, tmp, "tmp");
+
+        //alpha = norm(v);
+        alpha = getNorm2(tmp);
+        kernelCheck(__LINE__);
+        printf("alpha: %lf\n", alpha);
+
+
+        //v = v / alpha;
+        cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
+        multiply_scalar_vector(v, 1/alpha);
+        //printVectorKernel(0, u, "u");
+        kernelCheck(__LINE__);
+        //rho = sqrt(rho_hat^2 + beta^2);
+        double rho = sqrt(rho_hat * rho_hat + beta * beta);
+        //c = rho_hat / rho;
+        double c = rho_hat / rho;
+        // s = beta / rho;
+        double s = beta / rho;
+        //theta = s * alpha;
+        double theta = s * alpha;
+        //rho_hat = -c * alpha;
+        rho_hat = -c * alpha;
+        //phi = c * phi_hat;
+        double phi = c * phi_hat;
+        //phi_hat = s * phi_hat;
+        phi_hat = s * phi_hat;
+        printf("rho: %lf, c: %lf, s: %lf, theta: %lf, rho_hat: %lf, phi: %lf, phi_hat: %lf\n", rho, c, s, theta, rho_hat, phi, phi_hat);
+
+        //5
+        //x = x + (phi / rho) * w;
+        cudaMemcpy(tmp.elements, w.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
+        multiply_scalar_vector(tmp, phi / rho);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(x, tmp, true);
+        kernelCheck(__LINE__);
+        //printVectorKernel(0, x, "x");
+        
+
+        // w = v - (theta / rho) * w;
+        multiply_scalar_vector(w, (theta / rho));
+        kernelCheck(__LINE__);
+        cudaMemcpy(tmp.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(v, w, false);
+        kernelCheck(__LINE__);
+        cudaMemcpy(w.elements, v.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        kernelCheck(__LINE__);
+        cudaMemcpy(v.elements, tmp.elements, b.height * sizeof(double), cudaMemcpyDeviceToDevice);
+        //printVectorKernel(0, w, "w");
+        kernelCheck(__LINE__);
+        
+        get_csr_matrix_vector_multiplication(A, x, tmp);
+        kernelCheck(__LINE__);
+        get_add_subtract_vector(tmp, b, false);
+        kernelCheck(__LINE__);
+        double curr_err = getNorm2(tmp);
+        kernelCheck(__LINE__);
+        double improvment = prev_err - curr_err;
+        printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
+        prev_err = curr_err;
+        printf("i: %d: --------------------------Next Iteration ---------------------------\n", i);
+        i++;
+
+        if (curr_err <= ebs) break;
+    }
+
+
+    matrix_free_gpu(tmp);
+    matrix_free_gpu(u);
+    matrix_free_gpu(v);
+    matrix_free_gpu(w);
+
+    printf("----------------------END KERNEL------------------------\n\n\n");
     return x; 
-}*/
-
-GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lambda, const double ebs) {
-    GPUMatrix x = matrix_alloc_gpu(b.height, b.width);
-
-    //double beta = getNorm2(b);
-    //printf("beta: %lf\n", beta);
-    get_add_subtract_vector(b, b, true);
-
-    return b; 
 }
-
 
 
 CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const double lambda, const double ebs) {
     CPUMatrix resultCPU = matrix_alloc_cpu(b.height, b.width);
+    GPUMatrix resultGPU = matrix_alloc_gpu(b.height, b.width);
+
     GPUMatrix A_gpu = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
     GPUMatrix b_gpu = matrix_alloc_gpu(b.height, b.width);
 
@@ -265,9 +419,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     matrix_upload_cuSparse(A, A_gpu);
     matrix_upload(b, b_gpu);
     
-    printf("hier1\n");
-    GPUMatrix resultGPU = lsqr_algrithm(b_gpu, b_gpu, lambda, ebs);
-    printf("hier2");
+    resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
 
     /* Download result */
     matrix_download(resultGPU, resultCPU);
@@ -281,7 +433,39 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
 }
 
 
-/*
+void printVectorKernel(int iteration,GPUMatrix x, const char* name){
+	printf("%s: ",name);
+	CPUMatrix tempCPUMatrix = matrix_alloc_cpu(x.height, x.width);
+	matrix_download(x ,tempCPUMatrix);
+	//printf("iteration number: %d\n", iteration);
+	for(int i = 0; i < tempCPUMatrix.height; i++){
+		printf("%lf ", tempCPUMatrix.elements[i]);
+	}
+	printf("\n");
+}
+
+void printValuesKernel(GPUMatrix x, const char *name) {
+    printf("%s: ",name);
+	CPUMatrix tempCPUMatrix = matrix_alloc_sparse_cpu(x.height, x.width, x.elementSize, x.rowSize, x.columnSize);
+    matrix_download_cuSparse(x ,tempCPUMatrix);
+    
+
+    for(int i = 0; i < x.elementSize; i++){
+		printf("%lf ", tempCPUMatrix.elements[i]);
+    }
+    printf("\n Row:");
+
+    for(int i = 0; i < x.rowSize; i++){
+		printf("%d ", tempCPUMatrix.csrRow[i]);
+    }
+    printf("\n Col:");
+    for(int i = 0; i < x.columnSize; i++){
+		printf("%d ", tempCPUMatrix.csrCol[i]);
+    }
+    printf("\n");
+}
+
+
 void kernelCheck(int line){
 	const cudaError_t err = cudaGetLastError();                            
 	if (err != cudaSuccess) {                                              
@@ -290,4 +474,4 @@ void kernelCheck(int line){
             << ": " << err_str << " (" << err << ")" << std::endl;   
             exit(EXIT_FAILURE);                                                                    
 	}
-}*/
+}
