@@ -3,14 +3,11 @@ void printVectorj(int iteration,GPUMatrix x, const char* name);
 CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
     cusparseHandle_t handle;
     cusparseCreate(&handle);
-    cuSPARSECheck(__LINE__);
     GPUMatrix u,v,w,x,GPUb,tempVector;
     initGPUVectors(b,u,v,w,x,GPUb,tempVector);
-    cuSPARSECheck(__LINE__);
     matrix_upload(b,GPUb);
     CPUMatrix res = cusparseLSQR_aux(A,GPUb,u,v,w,x,tempVector,ebs);
     cleanGPUVectors(u,v,w,x,GPUb,tempVector);
-
     return res; 
 }
 
@@ -20,52 +17,33 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
     double *buffer;
     cusparseHandle_t handle;
     cusparseCreate(&handle);
-    cuSPARSECheck(__LINE__);
     prev_err = 100000000; 
     cusparseSpMatDescr_t spMatrixA;
     cusparseDnVecDescr_t u,v,x,tempDense;
     GPUMatrix GPUA =  matrix_alloc_sparse_gpu(A.height,A.width,A.elementSize,A.rowSize,A.columnSize);
     matrix_upload_cuSparse(A,GPUA);
-    cuSPARSECheck(__LINE__);
     cusparseCreateCsr(&spMatrixA,GPUA.height,GPUA.width,GPUA.elementSize,GPUA.csrRow,GPUA.csrCol,GPUA.elements,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO,CUDA_R_64F);
-    cuSPARSECheck(__LINE__);
     cusparseCreateDnVec(&u,VECb.height,VECu.elements,CUDA_R_64F);
     cusparseCreateDnVec(&v,VECb.height,VECv.elements,CUDA_R_64F);
     cusparseCreateDnVec(&x,VECb.height,VECx.elements,CUDA_R_64F);
     cusparseCreateDnVec(&tempDense,VECb.height,tempVector.elements,CUDA_R_64F);
-    cuSPARSECheck(__LINE__);
 	//init stage
     //beta = norm(b)
     beta = getNorm2(VECb);
     //u = b/beta
     cudaMemcpy (VECu.elements,VECb.elements, VECu.height*sizeof(double), cudaMemcpyDeviceToDevice);
     multiply_scalar_vector(VECu,1/beta);
-    cuSPARSECheck(__LINE__);
-    //printDenseVector(u,"u",tempPrint);
-    cuSPARSECheck(__LINE__);
-   // printSparseMatrix(spMatrixA,"A",tempVector);
-    cuSPARSECheck(__LINE__);
     //v = A'*u
     tempDouble = 1; tempDouble2 = 0;
     cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&tempInt);
-    cuSPARSECheck(__LINE__);
     cudaMalloc(&buffer, tempInt);
     cusparseSpMV(handle, CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
-    cuSPARSECheck(__LINE__);
     //alpha = norm(v)
     alpha = getNorm2(VECv);
-    cuSPARSECheck(__LINE__);
     //v = v/alpha;
     multiply_scalar_vector(VECv,1/alpha);
-    cuSPARSECheck(__LINE__);
-
-    //printDenseVector(v,"v",tempPrint);
-    //printDenseVector(u,"u",tempPrint);
-
     //w = v;
     cudaMemcpy (VECw.elements,VECv.elements, VECv.height*sizeof(double), cudaMemcpyDeviceToDevice);
-    cuSPARSECheck(__LINE__);
-
     phi_tag = beta; rho_tag = alpha;
 	int i = 0;
 	while(true){
@@ -74,28 +52,18 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 
         tempDouble = 1; tempDouble2 = (-1)*alpha;
         cusparseSpMV(handle,CUSPARSE_OPERATION_NON_TRANSPOSE,&tempDouble,spMatrixA,v,&tempDouble2,u,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
-        cuSPARSECheck(__LINE__);
-
         //beta = norm(u);
         beta = getNorm2(VECu);
-        cuSPARSECheck(__LINE__);
         // u = u / beta;
         multiply_scalar_vector(VECu,1/beta);
-        cuSPARSECheck(__LINE__);
-        //printDenseVector(u,"u",tempPrint);
         // v = A' * u - beta * v;
         tempDouble = 1; tempDouble2 = (-1)*beta;
         cusparseSpMV(handle,CUSPARSE_OPERATION_TRANSPOSE,&tempDouble,spMatrixA,u,&tempDouble2,v,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
-        cuSPARSECheck(__LINE__);
         //alpha = norm(v)
         alpha = getNorm2(VECv);
-        cuSPARSECheck(__LINE__);
         //v = v/alpha;
         multiply_scalar_vector(VECv,1/alpha);
-
-        cuSPARSECheck(__LINE__);
-       // printDenseVector(v,"v",tempPrint);
-		//next orthogonal transformation
+        //next orthogonal transformation
 		rho = sqrt(pow (rho_tag, 2.0) + pow (beta, 2.0));
 		c = rho_tag / rho;
 		s = beta / rho;
@@ -103,10 +71,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 		rho_tag = (-1) * c * alpha;
 		phi = c * phi_tag;
 		phi_tag = s * phi_tag;
-        //printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
-		//printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
         //updating x,w
-        //printDenseVector(w,"w",tempPrint);
         cudaMemcpy (tempVector.elements,VECw.elements, VECw.height*sizeof(double), cudaMemcpyDeviceToDevice);
         multiply_scalar_vector(tempVector,phi/rho); 
         cuSPARSECheck(__LINE__);
@@ -119,8 +84,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cuSPARSECheck(__LINE__);
         get_add_subtract_vector(VECw,VECv,true);
         cuSPARSECheck(__LINE__);
-        //printDenseVector(w,"w",tempVector);
-        //printDenseVector(b,"b",tempPrint);
+
         //check for convergence
         tempDouble = 1; tempDouble2 = (-1);
         cudaMemcpy (tempVector.elements,VECb.elements, VECb.height*sizeof(double), cudaMemcpyDeviceToDevice);
@@ -128,16 +92,12 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cusparseSpMV(handle,CUSPARSE_OPERATION_NON_TRANSPOSE,&tempDouble,spMatrixA,x,&tempDouble2,tempDense,CUDA_R_64F,CUSPARSE_CSRMV_ALG1,&buffer);
         cuSPARSECheck(__LINE__);
         //residual = norm(A*x - b);
-        //Ax - b (result in tempDense2)
+        //Ax - b (result in tempDense)
         curr_err = getNorm2(tempVector);
-
-        //printDenseVector(tempDense2,"result",tempPrint);
         cuSPARSECheck(__LINE__);
-        improvment = prev_err-curr_err;
-       if(i%500==0) printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
-       i++;
+        if(i%500==0) printf("line: %d size of error: %.6f \n",i,curr_err);
+        i++;
         if(i==A.height) break;
-        prev_err = curr_err;
     }
     printf("LSQR using cuSPARSE finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
     CPUMatrix result = matrix_alloc_cpu(VECb.height,VECb.width);

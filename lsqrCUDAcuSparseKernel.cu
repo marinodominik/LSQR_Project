@@ -415,9 +415,7 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     /* upload Matrix, vector */
     matrix_upload_cuSparse(A, A_gpu);
     matrix_upload(b, b_gpu);
-    //////////////////here measure time
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, lambda, ebs);
-    ///////////////// here end time
     /* Download result */
     matrix_download(resultGPU, resultCPU);
 
