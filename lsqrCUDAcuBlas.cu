@@ -55,12 +55,21 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	return cublasLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs);
 }
 
+	
+
+
 CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs){
 	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
 	cublasHandle_t handle;
 	cublasCreate(&handle);
 	cuBLASCheck(__LINE__); 
 	prev_err = 100000000; 
+
+	cudaEvent_t evStart, evStop;
+	cudaEventCreate(&evStart);
+ 	cudaEventCreate(&evStop);
+	cudaEventRecord(evStart, 0);
+
 	//init stage
 	//beta = norm(b)
 	cublasDnrm2(handle, b.height, b.elements,1,&beta); 
@@ -136,8 +145,8 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		rho_tag = (-1) * c * alpha;
 		phi = c * phi_tag;
 		phi_tag = s * phi_tag;
-		printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
-		printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
+		//printf("constants: alpha: %.6f beta:%.6f\n",alpha,beta);
+		//printf("constants: rho: %.6f c: %.6f s: %.6f theta: %.6f rho_tag: %.6f phi: %.6f\n phi_tag: %.6f\n",rho,c,s,theta,rho_tag,phi,phi_tag);
 		//updating x,w
 		//x =  (phi / rho) * w + x;             (in cublas : x is y, w is x)
 		//printVector(i, w,"w");
@@ -166,12 +175,19 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
 		cuBLASCheck(__LINE__); 
 		improvment = prev_err-curr_err;
-		printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);
+		if(i%500==0) printf("line: %d size of error: %.6f\n",i,curr_err);
 		i++;
 		if(i==A.height) break;
 		prev_err = curr_err;
 	}
 	printf("LSQR using cuBLAS finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
+	cudaEventRecord(evStop, 0);
+ 	cudaEventSynchronize(evStop);
+ 	float elapsedTime_ms;
+ 	cudaEventElapsedTime(&elapsedTime_ms, evStart, evStop);
+ 	printf("LSQR using cuBlas library took: %f ms\n", elapsedTime_ms);
+ 	cudaEventDestroy(evStart);
+    cudaEventDestroy(evStop);
 	CPUMatrix result = matrix_alloc_cpu(x.height,x.width);
 	matrix_download(x,result);
 	cublasDestroy(handle);
