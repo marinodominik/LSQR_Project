@@ -29,18 +29,37 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, const int max_iters)
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH cuBLAS-LIBARY ----------------------- >>>> */
+<<<<<<< HEAD
     //std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
     //CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b,ebs);
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
     //std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
+=======
+    std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
+    CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b,ebs);
+    printTruncatedVector(cuBLASResult);
+
+
+    //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
+   // std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
+>>>>>>> 530d4842a9f1101723aedf4b472c4dc0fd1c16e7
     //CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
     std::cout << "Starting LSQR using kernels\n" << std::endl;
+<<<<<<< HEAD
     CPUMatrix kernelResult = sparseLSQR_with_kernels(sparseMatrixA, cpuVector_b, max_iters, ebs);
+=======
+    CPUMatrix resultKernel = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
+    resultKernel = sparseLSQR_with_kernels(sparseMatrixA, cpuVector_b, lambda, ebs);
+   // save_file("multiplication.txt", resultKernel.elements, resultKernel.height, resultKernel.width, 1000);
+    
+    // Testing
+    //compare_lsqr(cpuMatrixA, cpuVector_b, cuBLASResult, lambda, ebs);
+>>>>>>> 530d4842a9f1101723aedf4b472c4dc0fd1c16e7
 
 
     // Testing

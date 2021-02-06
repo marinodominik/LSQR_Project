@@ -77,7 +77,11 @@ bool distance_values(double Xi, double xi, double ebs) {
     /*
         This function checks only the distance/error of the value between the Xi and xi
     */
+<<<<<<< HEAD
     double distance = sqrt(pow(Xi , 2) - pow(xi, 2));
+=======
+    double distance = sqrt(pow(Xi, 2)-pow(xi, 2));
+>>>>>>> 530d4842a9f1101723aedf4b472c4dc0fd1c16e7
     
     if (distance <= ebs) {
         return true;
