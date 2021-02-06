@@ -21,7 +21,7 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	matrix_upload(A,tempGpuMatrixA);
 	GPUMatrix gpuMatrixA = matrix_alloc_gpu(A.height,A.width);
 	matrix_upload(A,gpuMatrixA);
-	//TRANSPOSE A
+
 	double tempDouble = 1.0;
 	double tempDouble2 = 0.0;
 	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width);
