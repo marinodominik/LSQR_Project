@@ -14,7 +14,7 @@
 	u,v,w,x are matrix that is allocated before hand to use for cuBLAS computations 
 	vector x needs to be initialzed to 0.
 */
-CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
+CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs, int max_iterations){
 	cublasHandle_t handle;
 	cublasCreate(&handle);
     GPUMatrix tempGpuMatrixA = matrix_alloc_gpu(A.height,A.width);
@@ -24,7 +24,7 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 
 	double tempDouble = 1.0;
 	double tempDouble2 = 0.0;
-	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width);
+	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width,max_iterations);
 
 	matrix_free_gpu(tempGpuMatrixA);
 
@@ -48,7 +48,7 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
 	
 
 
-CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs){
+CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs,int max_iterations){
 	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
 	cublasHandle_t handle;
 	cublasCreate(&handle);
@@ -125,7 +125,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
 		if(i%200==0) printf("line: %d size of error: %.6f\n",i,curr_err);
 		i++;
-		if(i==A.height) break;
+		if(i==max_iterations || curr_err<ebs) break;
 	}
 	printf("LSQR using cuBLAS finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
 	cudaEventRecord(evStop, 0);
