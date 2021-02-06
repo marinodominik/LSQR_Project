@@ -30,3 +30,8 @@ TODOS:
         connect with kernels check
         solve issues with desc_t
     -> max_iters in main einfügen
+
+Presentation
+    What we have learned 
+        -> memory conflicts multiplication kernel??
+        -> shared memory every entry have to be zero --> error

@@ -410,15 +410,15 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
   double test3;
   double rtol;
 
-  printf("INIZIALZATION\n");
-  printf("Beta: %lf\n", beta);
-  printf("Alpha: %lf\n", alpha);
-  printf("u: "); 
-  print_matrix_vector_dense_format(u, m);
-  printf("v: ");
-  print_matrix_vector_dense_format(v, n);
-
-  printf("\n GETTING IN THE LOOP\n");
+    // printf("-----------------------------INIZIALZATION--------------------------\n");
+    // printf("Beta: %lf\n", beta);
+    // printf("Alpha: %lf\n", alpha);
+  // printf("u: "); 
+  // print_matrix_vector_dense_format(u, m);
+  // printf("v: ");
+  // print_matrix_vector_dense_format(v, n);
+  int i = 0;
+    // printf("\n------------------------- GETTING IN THE LOOP-----------------------\n");
 
   //
   //  Main itertation loop
@@ -460,11 +460,11 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         }
      }
 
-    printf("Beta: %lf\n", beta);
-    printf("u: "); 
-    print_matrix_vector_dense_format(u, m);
-    printf("Alpha: %lf\n", alpha);
-    print_matrix_vector_dense_format(v, n);
+    //  printf("Beta: %lf\n", beta);
+    // // // printf("u: "); 
+    // // // print_matrix_vector_dense_format(u, m);
+    //   printf("Alpha: %lf\n", alpha);
+    // // // print_matrix_vector_dense_format(v, n);
 
     //----------------------------------------------------------------
     //  Use a plane rotation to eliminate the damping parameter.
@@ -494,14 +494,7 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
     phibar =   sn * phibar;
     double tau    =   sn * phi;
 
-
-    printf("rho: %lf\n", rho);
-    printf("cs: %lf\n", cs);
-    printf("sn: %lf\n", sn);
-    printf("theta: %lf\n", theta);
-    printf("rho_hat: %lf\n", rhobar);
-    printf("phi: %lf\n", phi);
-    printf("phi_hat: %lf\n", phibar);
+      // printf("rho: %lf, c: %lf, s: %lf, theta: %lf, rho_hat: %lf, phi: %lf, phi_hat: %lf\n", rho, cs, sn, theta, rhobar, phi, phibar);
 
 
     //----------------------------------------------------------------
@@ -535,12 +528,13 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         }
       }
 
-      printf("x: ");
-      print_matrix_vector_dense_format(x, m);
-      printf("w: ");
-      print_matrix_vector_dense_format(w, n);
-
-
+      // printf("x: ");
+      // print_matrix_vector_dense_format(x, m);
+      // printf("w: ");
+      // print_matrix_vector_dense_format(w, n);
+      if (i % 200) printf("line: %i size of error: %lf", i, );
+      //  printf("i: %d ------------------------NEXT ITERATION -----------------------\n", i);
+      i ++;
     //----------------------------------------------------------------
     //  Monitor the norm of d_k, the update to x.
     //  dknorm = norm( d_k )
@@ -677,14 +671,12 @@ Solve( unsigned int m, unsigned int n, const double * b, double * x )
         istop = 0;
         }
       }
-      printf("\n NEXT ITERATION \n");
     } while ( istop == 0); 
 
   //===================================================================
   // End of iteration loop.
   //===================================================================
-
-
+  //printf("----------------------END---------------------------\n\n");
   if ( this->wantse )         //  Finish off the
     {                         //  standard error estimates.
     double t = one;

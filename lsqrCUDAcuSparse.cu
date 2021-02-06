@@ -135,7 +135,7 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         cuSPARSECheck(__LINE__);
         improvment = prev_err-curr_err;
         printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
-        if(i==A.height) break;
+        if(i==1) break;
         prev_err = curr_err;
     }
     printf("LSQR using cuSPARSE finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
@@ -147,7 +147,6 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
 }
 
 void cusparseClean(cusparseHandle_t handle, cusparseSpMatDescr_t &A,cusparseDnVecDescr_t u, cusparseDnVecDescr_t v,cusparseDnVecDescr_t x, cusparseDnVecDescr_t tempVector){
-    cusparseDestroySpMat(A);
     cusparseDestroyDnVec(u);
     cusparseDestroyDnVec(v);
     cusparseDestroyDnVec(x);

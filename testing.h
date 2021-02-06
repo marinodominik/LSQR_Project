@@ -7,7 +7,7 @@
 #include "helper.h"
 
 
-void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, double lambda, double eps);
+void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, int max_iters, double eps);
 
 bool compare_sparse_format_array(CPUMatrix a1, CPUMatrix a2, double ebs);
 
