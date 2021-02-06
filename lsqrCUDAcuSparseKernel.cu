@@ -383,7 +383,7 @@ GPUMatrix lsqr_algrithm(const GPUMatrix &A, const GPUMatrix &b, const double lam
         curr_err = getNorm2(tmp);
         kernelCheck(__LINE__);
         double improvment = prev_err - curr_err;
-        if(i%500==0)printf("line: %d size of error: %.6f \n",i,curr_err);
+        if(i%200==0)printf("line: %d size of error: %.6f \n",i,curr_err);
         i++;
         if (curr_err <= ebs) break;
     }

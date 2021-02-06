@@ -123,7 +123,7 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
 		tempDouble2 = 1.0;
 		cublasDgemv (handle, CUBLAS_OP_N, A.width,A.height,&tempDouble2,A.elements, A.width, x.elements,1,&tempDouble, tempVector.elements, 1);
 		cublasDnrm2(handle, tempVector.height,tempVector.elements,1,&curr_err); 
-		if(i%500==0) printf("line: %d size of error: %.6f\n",i,curr_err);
+		if(i%200==0) printf("line: %d size of error: %.6f\n",i,curr_err);
 		i++;
 		if(i==A.height) break;
 	}
