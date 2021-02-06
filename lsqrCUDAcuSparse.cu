@@ -1,6 +1,6 @@
 #include "lsqrCUDAcuSparse.h"
 void printVectorj(int iteration,GPUMatrix x, const char* name);
-CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
+CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs,int max_iterations){
     cusparseHandle_t handle;
     cusparseCreate(&handle);
     GPUMatrix u,v,w,x,GPUb,tempVector;
@@ -11,7 +11,7 @@ CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs){
     return res; 
 }
 
-CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &VECu,GPUMatrix &VECv,GPUMatrix &VECw,GPUMatrix &VECx,GPUMatrix &tempVector,double ebs){
+CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &VECu,GPUMatrix &VECv,GPUMatrix &VECw,GPUMatrix &VECx,GPUMatrix &tempVector,double ebs,int max_iterations){
     double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
     size_t tempInt;
     double *buffer;

@@ -17,7 +17,8 @@ __global__ void matrix_vector_multiplication(const int n_rows, const double *ele
 inline unsigned int div_up(unsigned int numerator, unsigned int denominator) { //numerator = zähler, denumerator = nenner
 	unsigned int result = numerator / denominator;
 	if (numerator % denominator) ++result;
-	return result;
+    return result;
+    
 }
 
 
