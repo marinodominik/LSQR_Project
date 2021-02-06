@@ -85,7 +85,7 @@ __global__ void norm2(const double *in_data, double *result,int size) {
     
     //thread 0 writes in result back to global memory
     if (tid == 0) {
-        result[blockIdx.x] = sdata[0]; //Da wir n-grids haben, werden die zahlen für jeden block in eine eigene zelle im global gespeichert
+        result[blockIdx.x] = sdata[0]; 
     }
 }
 
@@ -196,7 +196,8 @@ __global__ void scalar_vector(double *in_data, const double scalar, const int si
 <<<<<<<<<<-------------------- CSR MATRIX MULTIPLY WITH DENSE VECTOR ----------------------------->>>>>>>>>>>>>>>>>
 */
 
-__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, const int *rowPtr, const int *colIdx, const double *x, double *result) {
+__global__ void matrix_vector_multiplication(const int n_rows, const double *elements, 
+                                            const int *rowPtr, const int *colIdx, const double *x, double *result) {
     unsigned int row = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (row < n_rows) {

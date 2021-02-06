@@ -1,4 +1,6 @@
 #include "testing.h"
+#include <chrono>
+
 
 void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, int max_iters, double ebs) {
     /* This function compare the result of our lsqr function and calculate with the testing files 
@@ -19,8 +21,15 @@ void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, int max_iters, dou
     solver.SetMaximumNumberOfIterations(max_iters);
 
     CPUMatrix solver_result = matrix_alloc_cpu(1, b.height);
-
+    
+    auto t1 = std::chrono::high_resolution_clock::now();
     solver.Solve(b.height, A.width, b.elements, solver_result.elements);
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+	auto cpu_comp_time = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+
+    std::cout <<"LSQR using CPU took: " << cpu_comp_time << "ms" << std::endl;
+
 
     std::cout << "Stopped because " << solver.GetStoppingReason() << ": " << solver.GetStoppingReasonMessage() << std::endl;
     std::cout << "Used " << solver.GetNumberOfIterationsPerformed() << " Iterations" << std::endl;
@@ -77,11 +86,7 @@ bool distance_values(double Xi, double xi, double ebs) {
     /*
         This function checks only the distance/error of the value between the Xi and xi
     */
-<<<<<<< HEAD
     double distance = sqrt(pow(Xi , 2) - pow(xi, 2));
-=======
-    double distance = sqrt(pow(Xi, 2)-pow(xi, 2));
->>>>>>> 530d4842a9f1101723aedf4b472c4dc0fd1c16e7
     
     if (distance <= ebs) {
         return true;
