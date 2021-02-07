@@ -26,6 +26,7 @@ GPUMatrix transpose_matrix(GPUMatrix A) {
     GPUMatrix A_transpose = matrix_alloc_sparse_gpu(A.height, A.width, A.elementSize, A.rowSize, A.columnSize);
     cusparseHandle_t handle;
     cusparseCreate(&handle);
+    kernelCheck(__LINE__);
 
     size_t tempInt;
     double *buffer;
@@ -34,14 +35,14 @@ GPUMatrix transpose_matrix(GPUMatrix A) {
                                   A.elements, A.csrRow, A.csrCol,
                                   A_transpose.elements, A_transpose.csrCol,A_transpose.csrRow, 
                                   CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, &tempInt);
-
+    kernelCheck(__LINE__);
     cudaMalloc(&buffer, tempInt);
-
+    kernelCheck(__LINE__);
     cusparseCsr2cscEx2(handle, A.height, A.width, A.elementSize,
                        A.elements, A.csrRow, A.csrCol,
                        A_transpose.elements, A_transpose.csrRow, A_transpose.csrCol, 
                        CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG1, buffer);
-    
+    kernelCheck(__LINE__);
     return A_transpose;
 }
 
@@ -448,7 +449,8 @@ CPUMatrix sparseLSQR_with_kernels(const CPUMatrix &A, const CPUMatrix &b, const 
     resultGPU = lsqr_algrithm(A_gpu, b_gpu, max_iters, ebs);
     /* Download result */
     matrix_download(resultGPU, resultCPU);
-
+    kernelCheck(__LINE__);
+    
     /* free GPU memory */
     matrix_free_sparse_gpu(A_gpu);
     matrix_free_gpu(b_gpu);
