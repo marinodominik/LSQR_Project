@@ -24,7 +24,7 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs, int max
 
 	double tempDouble = 1.0;
 	double tempDouble2 = 0.0;
-	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width,max_iterations);
+	cublasDgeam(handle,CUBLAS_OP_T,CUBLAS_OP_N,A.height,A.width,&tempDouble,tempGpuMatrixA.elements,A.width,&tempDouble2,tempGpuMatrixA.elements,A.width,gpuMatrixA.elements,A.width);
 
 	matrix_free_gpu(tempGpuMatrixA);
 
@@ -42,17 +42,16 @@ CPUMatrix cublasLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs, int max
 	matrix_upload(fillingToX,x);
 	cublasDestroy(handle);
 
-	return cublasLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs);
+	return cublasLSQR_aux(gpuMatrixA,gpuVectorb,u,v,w,x,tempVector,ebs,max_iterations);
 }
 
 	
 
 
 CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPUMatrix &v,GPUMatrix &w,GPUMatrix &x,GPUMatrix &tempVector,double ebs,int max_iterations){
-	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
+	double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err;
 	cublasHandle_t handle;
 	cublasCreate(&handle);
-	prev_err = 100000000; 
 	cudaEvent_t evStart, evStop;
 	cudaEventCreate(&evStart);
  	cudaEventCreate(&evStop);

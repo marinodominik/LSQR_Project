@@ -6,7 +6,7 @@ CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs,int ma
     GPUMatrix u,v,w,x,GPUb,tempVector;
     initGPUVectors(b,u,v,w,x,GPUb,tempVector);
     matrix_upload(b,GPUb);
-    CPUMatrix res = cusparseLSQR_aux(A,GPUb,u,v,w,x,tempVector,ebs);
+    CPUMatrix res = cusparseLSQR_aux(A,GPUb,u,v,w,x,tempVector,ebs,max_iterations);
     cleanGPUVectors(u,v,w,x,GPUb,tempVector);
     return res; 
 }
