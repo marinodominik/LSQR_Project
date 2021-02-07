@@ -95,9 +95,10 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         //Ax - b (result in tempDense)
         curr_err = getNorm2(tempVector);
         cuSPARSECheck(__LINE__);
-        if(i%500==0) printf("line: %d size of error: %.6f \n",i,curr_err);
-        i++;
-        if(i==max_iterations || curr_err<ebs) break;
+        improvment = prev_err-curr_err;
+        printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
+        if(i==1) break;
+        prev_err = curr_err;
     }
     printf("LSQR using cuSPARSE finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
     CPUMatrix result = matrix_alloc_cpu(VECb.height,VECb.width);

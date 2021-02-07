@@ -1,6 +1,8 @@
 #include "testing.h"
+#include <chrono>
 
-void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, double lambda, double ebs) {
+
+void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, int max_iters, double ebs) {
     /* This function compare the result of our lsqr function and calculate with the testing files 
     
     :param *A: matrix array 
@@ -16,11 +18,18 @@ void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, double lambda, dou
     solver.SetMatrix(A_2D);
     
     solver.SetEpsilon(ebs);
-    solver.SetMaximumNumberOfIterations(5000);
+    solver.SetMaximumNumberOfIterations(max_iters);
 
     CPUMatrix solver_result = matrix_alloc_cpu(1, b.height);
-
+    
+    auto t1 = std::chrono::high_resolution_clock::now();
     solver.Solve(b.height, A.width, b.elements, solver_result.elements);
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+	auto cpu_comp_time = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
+
+    std::cout <<"LSQR using CPU took: " << cpu_comp_time << "ms" << std::endl;
+
 
     std::cout << "Stopped because " << solver.GetStoppingReason() << ": " << solver.GetStoppingReasonMessage() << std::endl;
     std::cout << "Used " << solver.GetNumberOfIterationsPerformed() << " Iterations" << std::endl;
@@ -29,11 +38,11 @@ void compare_lsqr(CPUMatrix A, CPUMatrix b, CPUMatrix result, double lambda, dou
 
     bool result_bool = compare_sparse_format_array(result, solver_result, ebs);
 
-    if (result_bool) {
-        std::cout << "Comparison successful ....  Result are equal with tolerance of " << ebs << std::endl; 
-    } else {
-        std::cout << "Comparison is not successful ....  Result are not equal with tolerance of " << ebs << std::endl; 
-    }
+    // if (result_bool) {
+    //     std::cout << "Comparison successful ....  Result are equal with tolerance of " << ebs << std::endl; 
+    // } else {
+    //     std::cout << "Comparison is not successful ....  Result are not equal with tolerance of " << ebs << std::endl; 
+    // }
 }
 
 
@@ -77,7 +86,7 @@ bool distance_values(double Xi, double xi, double ebs) {
     /*
         This function checks only the distance/error of the value between the Xi and xi
     */
-    double distance = sqrt(pow(Xi, 2)-pow(xi, 2));
+    double distance = sqrt(pow(Xi , 2) - pow(xi, 2));
     
     if (distance <= ebs) {
         return true;

@@ -1,4 +1,6 @@
 #pragma once
+
+#pragma once
 #include "matrix.h"
 #include <cublas_v2.h>
 #include "lsqrCUDAcuSparseKernel.h"
