@@ -12,12 +12,12 @@ CPUMatrix cusparseLSQR(const CPUMatrix &A, const CPUMatrix &b, double ebs,int ma
 }
 
 CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &VECu,GPUMatrix &VECv,GPUMatrix &VECw,GPUMatrix &VECx,GPUMatrix &tempVector,double ebs,int max_iterations){
-    double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err,prev_err,improvment;
+    double beta, alpha, phi, phi_tag, rho, rho_tag, c, s, theta, tempDouble, tempDouble2,curr_err;
     size_t tempInt;
     double *buffer;
     cusparseHandle_t handle;
     cusparseCreate(&handle);
-    prev_err = 100000000; 
+
     cusparseSpMatDescr_t spMatrixA;
     cusparseDnVecDescr_t u,v,x,tempDense;
     GPUMatrix GPUA =  matrix_alloc_sparse_gpu(A.height,A.width,A.elementSize,A.rowSize,A.columnSize);
@@ -95,10 +95,10 @@ CPUMatrix cusparseLSQR_aux(const CPUMatrix &A, const GPUMatrix &VECb,GPUMatrix &
         //Ax - b (result in tempDense)
         curr_err = getNorm2(tempVector);
         cuSPARSECheck(__LINE__);
-        improvment = prev_err-curr_err;
-        printf("line: %d size of error: %.6f improvment of: %.6f\n",i,curr_err,improvment);i++;
-        if(i==1) break;
-        prev_err = curr_err;
+    
+        if(i % 200 ==0) printf("line: %d size of error: %.6f \n",i,curr_err);i++;
+        if(i==max_iterations) break;
+        if(curr_err < ebs) break;
     }
     printf("LSQR using cuSPARSE finished.\n Iterations num: %d\n Size of error: %.6f\n",i,curr_err);
     CPUMatrix result = matrix_alloc_cpu(VECb.height,VECb.width);

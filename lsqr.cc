@@ -29,30 +29,35 @@ void lsqr(const char *pathMatrixA, const char *pathVectorb, const int max_iters)
 
 
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH cuBLAS-LIBARY ----------------------- >>>> */
-    //std::cout << "Starting LSQR using cuBLAS-LIBARY\n" << std::endl;
-    //CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b, ebs);
+    std::cout << "\n\nStarting LSQR using cuBLAS-LIBARY\n" << std::endl;
+    CPUMatrix cuBLASResult = cublasLSQR(cpuMatrixA,cpuVector_b, ebs, max_iters);
 
 
     //* <<<< ---------------- CALCULATE LSQR ONLY WITH cuSPARSE LIBARY ----------------------- >>>> */
-    //std::cout << "Starting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
-    //CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs);
+    std::cout << "\n\n\nStarting LSQR using cuSPAPRSE-LIBARY\n" << std::endl;
+    CPUMatrix cuSPARSEResult = cusparseLSQR(sparseMatrixA,cpuVector_b,ebs, max_iters);
+
+    CPUMatrix sparseMatrixA2 = read_matrix_in_csr(pathMatrixA);
+    CPUMatrix cpuVector_b2 = matrix_alloc_cpu(std::get<0>(b), std::get<1>(b));
+    cpuVector_b2.elements = std::get<2>(b);
 
 
+    kernelCheck(__LINE__);
     /* <<<< ---------------- CALCULATE LSQR ONLY WITH KERNELS ----------------------- >>>> */
-    std::cout << "Starting LSQR using kernels\n" << std::endl;
-    CPUMatrix kernelResult = sparseLSQR_with_kernels(sparseMatrixA, cpuVector_b, max_iters, ebs);
+    std::cout << "\n\n\nStarting LSQR using kernels\n" << std::endl;
+    CPUMatrix kernelResult = sparseLSQR_with_kernels(sparseMatrixA2, cpuVector_b2, max_iters, ebs);
 
 
     // Testing
-    std::cout << "Starting LSQR using CPU\n" << std::endl;
+    std::cout << "\n\n\nStarting LSQR using CPU\n" << std::endl;
     compare_lsqr(cpuMatrixA, cpuVector_b, kernelResult, max_iters, ebs);
 
     /* <<<< ---------------- FREE CPUMATRIX MEMORY ----------------------- >>>>  */
     free(std::get<2>(A));
     free(std::get<2>(b));
     matrix_free_cpu(kernelResult);
-    //matrix_free_cpu(cuBLASResult);
-    //matrix_free_cpu(cuSPARSEResult);
+    matrix_free_cpu(cuBLASResult);
+    matrix_free_cpu(cuSPARSEResult);
 
 }
 
