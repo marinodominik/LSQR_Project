@@ -135,6 +135,11 @@ CPUMatrix cublasLSQR_aux(const GPUMatrix &A, const GPUMatrix &b,GPUMatrix &u,GPU
  	cudaEventDestroy(evStart);
     cudaEventDestroy(evStop);
 	CPUMatrix result = matrix_alloc_cpu(x.height,x.width);
+	matrix_free_gpu(u);
+	matrix_free_gpu(v);
+	matrix_free_gpu(w);
+	matrix_free_gpu(x);
+	matrix_free_gpu(tempVector);
 	matrix_download(x,result);
 	cublasDestroy(handle);
 	return result;
